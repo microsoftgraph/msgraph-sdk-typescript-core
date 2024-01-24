@@ -1,0 +1,36 @@
+{
+  "name": "@microsoft/msgraph-sdk-core",
+  "version": "1.0.0-preview.1",
+  "description": "Core functionalities for the Microsoft Graph JavaScript SDK",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha tests/**/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/microsoftgraph/msgraph-sdk-typescript-core.git"
+  },
+  "keywords": [
+    "Microsoft",
+    "Graph",
+    "msgraph",
+    "SDK",
+    "client",
+    "API",
+    "core"
+  ],
+  "author": "Microsoft <graphsdkpub+javascript@microsoft.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/microsoftgraph/msgraph-sdk-typescript-core/issues"
+  },
+  "homepage": "https://github.com/microsoftgraph/msgraph-sdk-typescript-core#readme",
+  "devDependencies": {
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.6",
+    "chai": "^5.0.0",
+    "mocha": "^10.2.0",
+    "typescript": "^5.3.3"
+  }
+}
