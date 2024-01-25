@@ -22,6 +22,8 @@ jobs:
           shell: pwsh
           working-directory: ./
         - run: npm ci
+        - run: ./scripts/updateVersion.ps1
+          shell: pwsh
         - run: npm run build
         - run: npm run test
     
@@ -44,6 +46,8 @@ jobs:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 GITHUB_ACTOR: ${{ secrets.GIT_USERNAME }}
           - run: npm ci
+          - run: ./scripts/updateVersion.ps1
+            shell: pwsh
           - run: npm run build
           - run: npm publish --access public
             env:
