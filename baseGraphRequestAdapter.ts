@@ -1,7 +1,7 @@
 import { AuthenticationProvider, ParseNodeFactory, ParseNodeFactoryRegistry, SerializationWriterFactory, SerializationWriterFactoryRegistry } from "@microsoft/kiota-abstractions";
 import { FetchRequestAdapter, HttpClient } from "@microsoft/kiota-http-fetchlibrary";
 import { ObservabilityOptions, ObservabilityOptionsImpl } from "@microsoft/kiota-http-fetchlibrary/dist/cjs/src/observabilityOptions"; //TODO update the reference once the new version of kiota-typescript is published
-import { GraphHttpClient } from "graphHttpClient";
+import { GraphHttpClient } from "./graphHttpClient";
 
 /**
  * Base request adapter for graph clients. Bootstraps telemetry and other aspects.

@@ -1,7 +1,7 @@
 import { FetchHeadersInit, TelemetryHandler, appendRequestHeader } from "@microsoft/kiota-http-fetchlibrary";
 import { GraphTelemetryOption } from "./graphTelemetryOption";
 import { type RequestOption } from "@microsoft/kiota-abstractions";
-import { coreVersion } from "version";
+import { coreVersion } from "../version";
 
 /**
  * Adds telemetry headers to requests made to the Graph API

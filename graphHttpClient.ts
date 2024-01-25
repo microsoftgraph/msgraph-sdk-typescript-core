@@ -1,5 +1,5 @@
 import { HttpClient, type Middleware } from "@microsoft/kiota-http-fetchlibrary";
-import { GraphTelemetryOption, getDefaultMiddlewareChain } from "middleware";
+import { GraphTelemetryOption, getDefaultMiddlewareChain } from "./middleware";
 
 /**
  * Specialized version of the HTTP client for the Graph API that bootstraps telemetry, /me replacement, and other aspects
