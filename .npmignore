@@ -1,2 +1,11 @@
 tests/
 scripts/
+.github/
+.vscode/
+CODE_OF_CONDUCT.md
+*.ts
+!*.d.ts
+SECURITY.md
+SUPPORT.md
+.eslintignore
+tsconfig.json
