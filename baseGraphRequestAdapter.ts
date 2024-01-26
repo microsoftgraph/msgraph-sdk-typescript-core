@@ -1,6 +1,5 @@
 import { AuthenticationProvider, ParseNodeFactory, ParseNodeFactoryRegistry, SerializationWriterFactory, SerializationWriterFactoryRegistry } from "@microsoft/kiota-abstractions";
-import { FetchRequestAdapter, HttpClient } from "@microsoft/kiota-http-fetchlibrary";
-import { ObservabilityOptions, ObservabilityOptionsImpl } from "@microsoft/kiota-http-fetchlibrary/dist/cjs/src/observabilityOptions"; //TODO update the reference once the new version of kiota-typescript is published
+import { FetchRequestAdapter, HttpClient, type ObservabilityOptions, ObservabilityOptionsImpl } from "@microsoft/kiota-http-fetchlibrary";
 import { GraphHttpClient } from "./graphHttpClient";
 
 /**

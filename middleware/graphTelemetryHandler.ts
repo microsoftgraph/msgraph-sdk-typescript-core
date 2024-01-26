@@ -12,7 +12,7 @@ export class GraphTelemetryHandler extends TelemetryHandler
 	 * Creates a new instance of the GraphTelemetryHandler class
 	 */
 	public constructor(graphTelemetryOption: GraphTelemetryOption) {
-		const productPrefix = graphTelemetryOption.graphProductPrefix ?? "graph-javascript";
+		const productPrefix = graphTelemetryOption.graphProductPrefix ?? "graph-typescript";
 		const coreProduct = `${productPrefix}-core/${coreVersion}`;
 		let product = "";
 		if(graphTelemetryOption.graphServiceLibraryClientVersion) {
@@ -25,7 +25,6 @@ export class GraphTelemetryHandler extends TelemetryHandler
 				
 				appendRequestHeader(requestInit.headers as FetchHeadersInit, "SdkVersion", versionHeaderValue);
 			},
-			telemetryInfomation: undefined, //TODO remove on next kiota-typescript release
 			getKey: () => "graphTelemetryOption"
 		});
 	}
