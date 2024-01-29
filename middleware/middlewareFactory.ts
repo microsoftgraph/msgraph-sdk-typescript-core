@@ -1,14 +1,22 @@
-import { Middleware, MiddlewareFactory } from "@microsoft/kiota-http-fetchlibrary";
+import { Middleware, MiddlewareFactory, UrlReplaceHandler, UrlReplaceHandlerOptions } from "@microsoft/kiota-http-fetchlibrary";
 import { GraphTelemetryOption } from "./graphTelemetryOption";
 import { GraphTelemetryHandler } from "./graphTelemetryHandler";
+import { defaultUrlReplacementPairs } from "../constants";
 
 export function getDefaultMiddlewareChain(options: MiddlewareFactoryOptions = {customFetch: fetch as any}): Middleware[] {
 	let kiotaChain = MiddlewareFactory.getDefaultMiddlewareChain(options?.customFetch);
+	let additionalMiddleware: Middleware[] = [new UrlReplaceHandler(
+		new UrlReplaceHandlerOptions({
+			enabled: true,
+			urlReplacements: defaultUrlReplacementPairs
+		})
+	)];
 	if (options.graphTelemetryOption) {
-		const fetchMiddleware = kiotaChain.slice(-1);
-		const otherMiddlewares = kiotaChain.slice(0, kiotaChain.length -1);
-		kiotaChain = [...otherMiddlewares, new GraphTelemetryHandler(options.graphTelemetryOption), ...fetchMiddleware];
+		additionalMiddleware.push(new GraphTelemetryHandler(options.graphTelemetryOption));
 	}
+	const fetchMiddleware = kiotaChain.slice(-1);
+	const otherMiddlewares = kiotaChain.slice(0, kiotaChain.length -1);
+	kiotaChain = [...otherMiddlewares, ...additionalMiddleware, ...fetchMiddleware];
 	return kiotaChain;
 }
 interface MiddlewareFactoryOptions {
