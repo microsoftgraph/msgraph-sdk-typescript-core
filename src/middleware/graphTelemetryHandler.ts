@@ -30,10 +30,10 @@ export class GraphTelemetryHandler extends TelemetryHandler {
       : coreProduct;
     super({
       telemetryConfigurator: (
-        url: string,
+        _url: string,
         requestInit: RequestInit,
-        requestOptions?: Record<string, RequestOption>,
-        telemetryInformation?: unknown
+        _requestOptions?: Record<string, RequestOption>,
+        _telemetryInformation?: unknown
       ) => {
         appendRequestHeader(
           requestInit.headers as FetchHeadersInit,

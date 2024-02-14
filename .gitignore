@@ -14,3 +14,4 @@ kiota_tool/
 *.js.map
 *.tsbuildinfo
 *.js
+!.eslintrc.js

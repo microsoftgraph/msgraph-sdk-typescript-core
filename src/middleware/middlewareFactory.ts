@@ -8,13 +8,13 @@ import { GraphTelemetryOption } from "./graphTelemetryOption";
 import { GraphTelemetryHandler } from "./graphTelemetryHandler";
 import { defaultUrlReplacementPairs } from "../utils/constants";
 
-export function getDefaultMiddlewareChain(
+export const getDefaultMiddlewareChain = (
   options: MiddlewareFactoryOptions = { customFetch: fetch as any }
-): Middleware[] {
+): Middleware[] => {
   let kiotaChain = MiddlewareFactory.getDefaultMiddlewareChain(
     options?.customFetch
   );
-  let additionalMiddleware: Middleware[] = [
+  const additionalMiddleware: Middleware[] = [
     new UrlReplaceHandler(
       new UrlReplaceHandlerOptions({
         enabled: true,
@@ -35,7 +35,7 @@ export function getDefaultMiddlewareChain(
     ...fetchMiddleware,
   ];
   return kiotaChain;
-}
+};
 interface MiddlewareFactoryOptions {
   customFetch?: (request: string, init: RequestInit) => Promise<Response>;
   graphTelemetryOption?: GraphTelemetryOption;
