@@ -13,8 +13,18 @@
     "noEmit": false,
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2017"
+    "sourceMap": true,
+    "target": "ES2017",
+    "outDir": "dist",
+    "sourceRoot": "src",
+    "rootDir": "src",
   },
-  "include": ["**/*.ts"],
-  "exclude": ["node_modules", "**/__tests__/*", "**/__e2e__/*"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/__tests__/*",
+    "**/__e2e__/*"
+  ]
 }
