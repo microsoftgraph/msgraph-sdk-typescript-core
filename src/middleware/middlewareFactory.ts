@@ -9,7 +9,7 @@ import { GraphTelemetryHandler } from "./graphTelemetryHandler";
 import { defaultUrlReplacementPairs } from "../utils/constants";
 
 export const getDefaultMiddlewareChain = (
-  options: MiddlewareFactoryOptions = { customFetch: fetch as any }
+  options: MiddlewareFactoryOptions = { customFetch: fetch }
 ): Middleware[] => {
   let kiotaChain = MiddlewareFactory.getDefaultMiddlewareChain(
     options?.customFetch
