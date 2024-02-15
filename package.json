@@ -22,7 +22,11 @@
     "clean": "shx rm -rf ./dist && shx rm -rf ./tsconfig.tsbuildinfo",
     "compile": "tsc -b",
     "compile:watch": "tsc -w",
-    "test": "mocha tests/**/*.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:benchmark": "vitest bench",
+    "test:coverage": "npm run test -- --coverage",
+    "test:ui": "vitest --ui",
     "lint": "eslint -c ./.eslintrc.js 'src/**/*.ts'",
     "lint:fix": "npm run lint -- --fix",
     "updateVersion": "node ./scripts/updateVersion.js"
@@ -48,10 +52,9 @@
   "homepage": "https://github.com/microsoftgraph/msgraph-sdk-typescript-core#readme",
   "devDependencies": {
     "@microsoft/eslint-config-msgraph": "^2.0.0",
-    "@types/chai": "^4.3.11",
-    "@types/mocha": "^10.0.6",
     "@types/node": "^20.11.6",
-    "chai": "^5.0.0",
+    "@vitest/coverage-v8": "^1.2.2",
+    "@vitest/ui": "^1.2.2",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jsdoc": "^48.1.0",
@@ -59,9 +62,9 @@
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-simple-import-sort": "^12.0.0",
     "fs-extra": "^11.2.0",
-    "mocha": "^10.2.0",
     "shx": "^0.3.4",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2"
   },
   "dependencies": {
     "@microsoft/kiota-abstractions": "^1.0.0-preview.39",

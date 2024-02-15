@@ -1,6 +1,6 @@
-import { assert } from "chai";
-import { GraphTelemetryHandler } from "./graphTelemetryHandler";
-import { GraphTelemetryOption } from "./graphTelemetryOption";
+import { assert, describe, it } from "vitest";
+import { GraphTelemetryHandler } from "../../src/middleware/graphTelemetryHandler";
+import { GraphTelemetryOption } from "../../src/middleware/graphTelemetryOption";
 
 const options: GraphTelemetryOption = {
   graphServiceTargetVersion: "v1",
@@ -11,6 +11,6 @@ const options: GraphTelemetryOption = {
 describe("GraphTelemetryHandler tests", () => {
   it("should initialize", () => {
     const handler = new GraphTelemetryHandler(options);
-    assert(handler);
+    assert(handler, "GraphTelemetryHandler failed to initialize");
   });
 });

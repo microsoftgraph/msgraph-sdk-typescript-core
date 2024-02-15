@@ -20,11 +20,11 @@
     "rootDir": "src",
   },
   "include": [
-    "src"
+    "src",
+    "test",
   ],
   "exclude": [
     "node_modules",
-    "**/__tests__/*",
-    "**/__e2e__/*"
-  ]
+    "vite.config.ts"
+  ],
 }
