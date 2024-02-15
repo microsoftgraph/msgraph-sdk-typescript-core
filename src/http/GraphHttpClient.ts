@@ -1,7 +1,4 @@
-import {
-  HttpClient,
-  type Middleware,
-} from "@microsoft/kiota-http-fetchlibrary";
+import { HttpClient, type Middleware } from "@microsoft/kiota-http-fetchlibrary";
 import { GraphTelemetryOption, getDefaultMiddlewareChain } from "../middleware";
 
 /**
@@ -26,7 +23,7 @@ export class GraphHttpClient extends HttpClient {
         : getDefaultMiddlewareChain({
             customFetch,
             graphTelemetryOption,
-          }))
+          })),
     );
   }
 }

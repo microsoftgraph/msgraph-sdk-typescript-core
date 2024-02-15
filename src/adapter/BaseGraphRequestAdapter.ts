@@ -37,14 +37,8 @@ export class BaseGraphRequestAdapter extends FetchRequestAdapter {
       graphServiceTargetVersion,
       graphServiceLibraryClientVersion,
     }),
-    observabilityOptions: ObservabilityOptions = new ObservabilityOptionsImpl()
+    observabilityOptions: ObservabilityOptions = new ObservabilityOptionsImpl(),
   ) {
-    super(
-      authenticationProvider,
-      parseNodeFactory,
-      serializationWriterFactory,
-      httpClient,
-      observabilityOptions
-    );
+    super(authenticationProvider, parseNodeFactory, serializationWriterFactory, httpClient, observabilityOptions);
   }
 }

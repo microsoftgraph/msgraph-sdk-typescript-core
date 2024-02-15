@@ -1,8 +1,4 @@
-import {
-  FetchHeadersInit,
-  TelemetryHandler,
-  appendRequestHeader,
-} from "@microsoft/kiota-http-fetchlibrary";
+import { FetchHeadersInit, TelemetryHandler, appendRequestHeader } from "@microsoft/kiota-http-fetchlibrary";
 import { GraphTelemetryOption } from "./GraphTelemetryOption";
 import { type RequestOption } from "@microsoft/kiota-abstractions";
 import { coreVersion } from "../utils/Version";
@@ -15,8 +11,7 @@ export class GraphTelemetryHandler extends TelemetryHandler {
    * Creates a new instance of the GraphTelemetryHandler class
    */
   public constructor(graphTelemetryOption: GraphTelemetryOption) {
-    const productPrefix =
-      graphTelemetryOption.graphProductPrefix ?? "graph-typescript";
+    const productPrefix = graphTelemetryOption.graphProductPrefix ?? "graph-typescript";
     const coreProduct = `${productPrefix}-core/${coreVersion}`;
     let product = "";
     if (graphTelemetryOption.graphServiceLibraryClientVersion) {
@@ -25,21 +20,15 @@ export class GraphTelemetryHandler extends TelemetryHandler {
         : "";
       product = `${productPrefix}${serviceLibVersion}/${graphTelemetryOption.graphServiceLibraryClientVersion}`;
     }
-    const versionHeaderValue = product
-      ? `${product}, ${coreProduct}`
-      : coreProduct;
+    const versionHeaderValue = product ? `${product}, ${coreProduct}` : coreProduct;
     super({
       telemetryConfigurator: (
         _url: string,
         requestInit: RequestInit,
         _requestOptions?: Record<string, RequestOption>,
-        _telemetryInformation?: unknown
+        _telemetryInformation?: unknown,
       ) => {
-        appendRequestHeader(
-          requestInit.headers as FetchHeadersInit,
-          "SdkVersion",
-          versionHeaderValue
-        );
+        appendRequestHeader(requestInit.headers as FetchHeadersInit, "SdkVersion", versionHeaderValue);
       },
       getKey: () => "graphTelemetryOption",
     });
