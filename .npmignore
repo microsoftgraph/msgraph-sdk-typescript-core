@@ -3,9 +3,8 @@ scripts/
 .github/
 .vscode/
 CODE_OF_CONDUCT.md
-*.ts
-!*.d.ts
+src/
 SECURITY.md
 SUPPORT.md
-.eslintignore
+.eslint*
 tsconfig.json
