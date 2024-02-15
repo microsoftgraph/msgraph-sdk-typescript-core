@@ -16,4 +16,5 @@ kiota_tool/
 *.js
 !.eslintrc.js
 !scripts/*.js
-coverage
+coverage/
+samples/

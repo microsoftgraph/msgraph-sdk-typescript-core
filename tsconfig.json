@@ -21,10 +21,10 @@
   },
   "include": [
     "src",
-    "test",
   ],
   "exclude": [
     "node_modules",
-    "vite.config.ts"
+    "vite.config.ts",
+    "test"
   ],
 }

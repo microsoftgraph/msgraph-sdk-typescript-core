@@ -8,4 +8,4 @@ const writeVersionToFile = (path) => {
   fs.writeFileSync(path, data);
 };
 
-writeVersionToFile("./src/utils/version.ts");
+writeVersionToFile("./src/utils/Version.ts");
