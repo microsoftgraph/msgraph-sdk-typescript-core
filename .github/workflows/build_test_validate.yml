@@ -18,14 +18,9 @@ jobs:
           uses: actions/setup-node@v4
           with:
             node-version: ${{ matrix.node-version }}
-        - run: .\scripts\updateVersion.ps1
-          shell: pwsh
-          working-directory: ./
         - run: npm ci
-        - run: ./scripts/updateVersion.ps1
-          shell: pwsh
         - run: npm run build
-        # - run: npm run test # no tests yet
+        - run: npm run test:coverage # Add junit/html to post coverage results
 
     # The check-build-matrix returns success if all matrix jobs in build are successful; otherwise, it returns a failure.
     # Use this as a PR status check for GitHub Policy Service instead of individual matrix entry checks.
@@ -60,8 +55,6 @@ jobs:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 GITHUB_ACTOR: ${{ secrets.GIT_USERNAME }}
           - run: npm ci
-          - run: ./scripts/updateVersion.ps1
-            shell: pwsh
           - run: npm run build
           - run: npm publish --access public
             env:
