@@ -10,3 +10,4 @@ SECURITY.md
 SUPPORT.md
 .eslint*
 tsconfig.json
+.husky

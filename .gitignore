@@ -17,3 +17,4 @@ kiota_tool/
 !.eslintrc.js
 !scripts/*.js
 coverage
+.husky
