@@ -1,1 +1,1 @@
-export * from "./baseGraphRequestAdapter";
+export * from "./BaseGraphRequestAdapter";

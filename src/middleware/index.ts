@@ -1,3 +1,3 @@
-export * from "./graphTelemetryOption";
-export * from "./graphTelemetryHandler";
-export * from "./middlewareFactory";
+export * from "./GraphTelemetryOption";
+export * from "./GraphTelemetryHandler";
+export * from "./MiddlewareFactory";

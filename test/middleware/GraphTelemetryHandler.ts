@@ -1,6 +1,6 @@
 import { assert, describe, it } from "vitest";
-import { GraphTelemetryHandler } from "../../src/middleware/graphTelemetryHandler";
-import { GraphTelemetryOption } from "../../src/middleware/graphTelemetryOption";
+import { GraphTelemetryHandler } from "../../src/middleware/GraphTelemetryHandler";
+import { GraphTelemetryOption } from "../../src/middleware/GraphTelemetryOption";
 
 const options: GraphTelemetryOption = {
   graphServiceTargetVersion: "v1",
