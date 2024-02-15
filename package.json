@@ -16,6 +16,7 @@
     "src"
   ],
   "scripts": {
+    "prepare": "husky init",
     "build": "npm run updateVersion && npm run clean && npm run build:compile",
     "build:compile": "npm run compile",
     "build:watch": "npm run compile:watch",
