@@ -77,10 +77,5 @@
     "@microsoft/kiota-serialization-text": "^1.0.0-preview.36",
     "guid-typescript": "^1.0.9",
     "tslib": "^2.6.2"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run lint"
-    }
   }
 }
