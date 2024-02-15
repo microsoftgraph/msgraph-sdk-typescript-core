@@ -4,6 +4,8 @@ scripts/
 .vscode/
 CODE_OF_CONDUCT.md
 src/
+test/
+coverage/
 SECURITY.md
 SUPPORT.md
 .eslint*
