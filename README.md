@@ -1,33 +1,58 @@
-# Project
+# Microsoft Graph Core SDK for Typescript
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+Get started with the Microsoft Graph SDK for Typescript by integrating the [Microsoft Graph API](https://docs.microsoft.com/graph/overview) into your Typescript application!
 
-As the maintainer of this project, please make a few updates:
+> **Note:** this package contains the core feature of the TypeScript SDK. To get the full experience checkout [the v1 SDK](https://github.com/microsoftgraph/msgraph-sdk-typescript) and [the beta SDK](https://github.com/microsoftgraph/msgraph-beta-sdk-typescript).
+>
+> **Note:** the Microsoft Graph Typescript SDK is currently in Pre-Release.
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+## 1. Installation
 
-## Contributing
+```shell
+# this will install the core package
+npm install @microsoft/msgraph-sdk-core
+```
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+## 2. Getting started
 
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
+> Note: we are working to add the getting started information for Typescript to our public documentation, in the meantime the following sample should help you getting started.
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+### 2.1 Register your application
 
-## Trademarks
+Register your application by following the steps at [Register your app with the Microsoft Identity Platform](https://docs.microsoft.com/graph/auth-register-app-v2).
 
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
-[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
-Any use of third-party trademarks or logos are subject to those third-party's policies.
+### 2.2 Create an AuthenticationProvider object
+
+An instance of the **FetchClient** class handles making requests to the service. To create a new instance of this class, you need to provide an instance of **AuthenticationProvider**, which can authenticate requests to Microsoft Graph.
+
+For an example of how to get an authentication provider, see [choose a Microsoft Graph authentication provider](https://docs.microsoft.com/graph/sdks/choose-authentication-providers?tabs=typescript).
+
+## 3. Make requests against the service
+
+TODO: document how the fetch client augmented with middleware handlers can be used to make arbitrary requests.
+
+## 4. Documentation
+
+For more detailed documentation, see:
+
+* [Overview](https://docs.microsoft.com/graph/overview)
+* [Collections](https://docs.microsoft.com/graph/sdks/paging)
+* [Making requests](https://docs.microsoft.com/graph/sdks/create-requests)
+* [Known issues](https://github.com/MicrosoftGraph/msgraph-sdk-typescript/issues)
+* [Contributions](https://github.com/microsoftgraph/msgraph-sdk-typescript/blob/main/CONTRIBUTING.md)
+
+## 5. Issues
+
+For known issues, see [issues](https://github.com/MicrosoftGraph/msgraph-sdk-typescript/issues).
+
+## 6. Contributions
+
+The Microsoft Graph SDK is open for contribution. To contribute to this project, see [Contributing](https://github.com/microsoftgraph/msgraph-sdk-typescript/blob/main/CONTRIBUTING.md).
+
+## 7. License
+
+Copyright (c) Microsoft Corporation. All Rights Reserved. Licensed under the [MIT license](LICENSE).
+
+## 8. Third-party notices
+
+[Third-party notices](THIRD%20PARTY%20NOTICES)
