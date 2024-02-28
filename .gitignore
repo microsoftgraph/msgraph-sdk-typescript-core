@@ -14,3 +14,7 @@ kiota_tool/
 *.js.map
 *.tsbuildinfo
 *.js
+!.eslintrc.js
+!scripts/*.js
+coverage/
+samples/
