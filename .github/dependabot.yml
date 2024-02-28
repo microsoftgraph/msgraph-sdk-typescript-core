@@ -21,3 +21,6 @@ updates:
     eslint:
       patterns:
         - "*eslint*"
+    kiota:
+      patterns:
+        - "*kiota*"
