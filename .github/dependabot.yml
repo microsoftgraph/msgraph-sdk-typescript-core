@@ -24,3 +24,6 @@ updates:
     kiota:
       patterns:
         - "*kiota*"
+    vitest:
+      patterns:
+        - "*vitest*"
