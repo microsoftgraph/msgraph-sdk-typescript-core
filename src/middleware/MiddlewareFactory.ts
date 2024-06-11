@@ -4,9 +4,9 @@ import {
   UrlReplaceHandler,
   UrlReplaceHandlerOptions,
 } from "@microsoft/kiota-http-fetchlibrary";
-import { GraphTelemetryOption } from "./GraphTelemetryOption";
-import { GraphTelemetryHandler } from "./GraphTelemetryHandler";
-import { defaultUrlReplacementPairs } from "../utils/Constants";
+import { GraphTelemetryOption } from "./GraphTelemetryOption.js";
+import { GraphTelemetryHandler } from "./GraphTelemetryHandler.js";
+import { defaultUrlReplacementPairs } from "../utils/Constants.js";
 
 export const getDefaultMiddlewares = (options: MiddlewareFactoryOptions = { customFetch: fetch }): Middleware[] => {
   let kiotaChain = MiddlewareFactory.getDefaultMiddlewares(options?.customFetch);

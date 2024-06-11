@@ -11,7 +11,7 @@ import {
   type ObservabilityOptions,
   ObservabilityOptionsImpl,
 } from "@microsoft/kiota-http-fetchlibrary";
-import { GraphHttpClient } from "../http/GraphHttpClient";
+import { GraphHttpClient } from "../http/GraphHttpClient.js";
 
 /**
  * Base request adapter for graph clients. Bootstraps telemetry and other aspects.
