@@ -3,11 +3,12 @@
     "access": "public"
   },
   "name": "@microsoft/msgraph-sdk-core",
-  "version": "1.0.0-preview.4",
+  "version": "1.0.0-preview.5",
   "description": "Core functionalities for the Microsoft Graph JavaScript SDK",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "module": "./dist/index.js",
+  "type": "module",
   "exports": {
     ".": "./dist/index.js"
   },
@@ -28,12 +29,12 @@
     "test:benchmark": "vitest bench",
     "test:coverage": "npm run test -- --coverage",
     "test:ui": "vitest --ui",
-    "lint": "eslint -c ./.eslintrc.js \"src/**/*.ts\"",
+    "lint": "eslint -c ./.eslintrc.cjs \"src/**/*.ts\"",
     "lint:fix": "npm run lint -- --fix",
     "prettier:base": "prettier --parser typescript",
     "prettier:check": "npm run prettier:base -- --check \"src/**/*.{ts,tsx}\"",
     "prettier:fix": "npm run prettier:base -- --write \"src/**/*.{ts,tsx}\"",
-    "updateVersion": "node ./scripts/updateVersion.js"
+    "updateVersion": "node ./scripts/updateVersion.cjs"
   },
   "repository": {
     "type": "git",
