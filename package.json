@@ -12,10 +12,6 @@
   "exports": {
     ".": "./dist/index.js"
   },
-  "files": [
-    "dist",
-    "src"
-  ],
   "scripts": {
     "prepare": "husky",
     "build": "npm run updateVersion && npm run prettier:check && npm run clean && npm run build:compile",
