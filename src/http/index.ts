@@ -1,1 +1,1 @@
-export * from "./GraphHttpClient";
+export * from "./GraphHttpClient.js";

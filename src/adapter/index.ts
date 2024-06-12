@@ -1,1 +1,1 @@
-export * from "./BaseGraphRequestAdapter";
+export * from "./BaseGraphRequestAdapter.js";
