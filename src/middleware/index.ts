@@ -1,3 +1,3 @@
-export * from "./GraphTelemetryOption";
-export * from "./GraphTelemetryHandler";
-export * from "./MiddlewareFactory";
+export * from "./GraphTelemetryOption.js";
+export * from "./GraphTelemetryHandler.js";
+export * from "./MiddlewareFactory.js";
