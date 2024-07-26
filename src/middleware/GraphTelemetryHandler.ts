@@ -1,4 +1,4 @@
-import { FetchHeadersInit, TelemetryHandler, appendRequestHeader } from "@microsoft/kiota-http-fetchlibrary";
+import { FetchRequestInit, TelemetryHandler, appendRequestHeader } from "@microsoft/kiota-http-fetchlibrary";
 import { GraphTelemetryOption } from "./GraphTelemetryOption.js";
 import { type RequestOption } from "@microsoft/kiota-abstractions";
 import { coreVersion } from "../utils/Version.js";
@@ -28,7 +28,7 @@ export class GraphTelemetryHandler extends TelemetryHandler {
         _requestOptions?: Record<string, RequestOption>,
         _telemetryInformation?: unknown,
       ) => {
-        appendRequestHeader(requestInit.headers as FetchHeadersInit, "SdkVersion", versionHeaderValue);
+        appendRequestHeader(requestInit as FetchRequestInit, "SdkVersion", versionHeaderValue);
       },
       getKey: () => "graphTelemetryOption",
     });
