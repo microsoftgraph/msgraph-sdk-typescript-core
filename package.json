@@ -53,7 +53,7 @@
   "homepage": "https://github.com/microsoftgraph/msgraph-sdk-typescript-core#readme",
   "devDependencies": {
     "@microsoft/eslint-config-msgraph": "^4.1.1",
-    "@types/node": "^20.11.6",
+    "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0-alpha.54",
     "@typescript-eslint/parser": "^8.0.0-alpha.54",
     "@vitest/coverage-v8": "^2.0.1",
