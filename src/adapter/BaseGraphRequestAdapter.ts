@@ -5,18 +5,14 @@ import {
   SerializationWriterFactory,
   SerializationWriterFactoryRegistry,
 } from "@microsoft/kiota-abstractions";
-import {
-  FetchRequestAdapter,
-  HttpClient,
-  type ObservabilityOptions,
-  ObservabilityOptionsImpl,
-} from "@microsoft/kiota-http-fetchlibrary";
+import { HttpClient, type ObservabilityOptions, ObservabilityOptionsImpl } from "@microsoft/kiota-http-fetchlibrary";
+import { DefaultRequestAdapter } from "@microsoft/kiota-bundle";
 import { GraphHttpClient } from "../http/GraphHttpClient.js";
 
 /**
  * Base request adapter for graph clients. Bootstraps telemetry and other aspects.
  */
-export class BaseGraphRequestAdapter extends FetchRequestAdapter {
+export class BaseGraphRequestAdapter extends DefaultRequestAdapter {
   /**
    * Instantiates a new request adapter.
    * @param graphServiceTargetVersion the target version of the api endpoint we are targeting ("" or beta).

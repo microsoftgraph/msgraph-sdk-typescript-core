@@ -7,7 +7,7 @@ export class GraphAzureIdentityAuthenticationProvider extends AzureIdentityAuthe
   public constructor(
     credentials: TokenCredential,
     scopes?: string[],
-    options?: GetTokenOptions | undefined,
+    options?: GetTokenOptions,
     allowedHosts?: Set<string>,
     observabilityOptions?: ObservabilityOptions,
     isCaeEnabled?: boolean,

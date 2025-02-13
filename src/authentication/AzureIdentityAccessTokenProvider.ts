@@ -6,7 +6,7 @@ export class GraphAzureIdentityAccessTokenProvider extends AzureIdentityAccessTo
   public constructor(
     credentials: TokenCredential,
     scopes?: string[],
-    options?: GetTokenOptions | undefined,
+    options?: GetTokenOptions,
     allowedHosts?: Set<string>,
     observabilityOptions?: ObservabilityOptions,
     isCaeEnabled?: boolean,
