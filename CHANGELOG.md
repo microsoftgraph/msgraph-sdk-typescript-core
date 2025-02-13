@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-preview.10](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.9...v1.0.0-preview.10) (2025-02-13)
+
+
+### Features
+
+* switches to kiota bundle for dependencies ([b0aa449](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/b0aa4499ba8de809580faaf0e535e468b5503d57))
+
 ## [1.0.0-preview.9](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.8...v1.0.0-preview.9) (2025-02-03)
 
 
