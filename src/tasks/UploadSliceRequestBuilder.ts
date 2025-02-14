@@ -3,7 +3,6 @@ import { createUploadResult, UploadResult } from "./UploadResult";
 import { Headers } from "@microsoft/kiota-abstractions/dist/es/src/headers";
 import { HttpMethod } from "@microsoft/kiota-abstractions/dist/es/src/httpMethod";
 import { HeadersInspectionOptions } from "@microsoft/kiota-http-fetchlibrary";
-import { UploadResponseHandlerOption } from "./UploadResponseHandlerOption";
 
 const binaryContentType = "application/octet-stream";
 
@@ -20,10 +19,8 @@ export class UploadSliceRequestBuilder<T extends Parsable> {
     const data = await this.readSection(stream, this.rangeBegin, this.rangeEnd);
     const requestInformation = this.createPutRequestInformation(data);
 
-    const responseHandler = new UploadResponseHandlerOption();
-
     const headerOptions = new HeadersInspectionOptions({ inspectResponseHeaders: true });
-    requestInformation.addRequestOptions([headerOptions, responseHandler]);
+    requestInformation.addRequestOptions([headerOptions]);
 
     return this.requestAdapter.send<UploadResult<T>>(requestInformation, createUploadResult, undefined);
   }

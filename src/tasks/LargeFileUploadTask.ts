@@ -1,27 +1,63 @@
+/**
+ * -------------------------------------------------------------------------------------------
+ * Copyright (c) Microsoft Corporation.  All Rights Reserved.  Licensed under the MIT License.
+ * See License in the project root for license information.
+ * -------------------------------------------------------------------------------------------
+ */
+
+/**
+ * @module LargeFileUploadTask
+ **/
+
 import { Parsable, RequestAdapter } from "@microsoft/kiota-abstractions";
-import { UploadSession } from "./UploadSession";
 import { UploadSliceRequestBuilder } from "./UploadSliceRequestBuilder";
 import { UploadResult } from "./UploadResult";
-import { IProgress } from "./IProgress";
 
-export interface ILargeFileUploadTask<T extends Parsable> {
-  Upload(progressEventHandler: IProgress): Promise<UploadResult<T>>;
-
-  Resume(progressEventHandler: IProgress): Promise<UploadResult<T>>;
-
-  RefreshUploadStatus(): Promise<void>;
-
-  UpdateSession(): Promise<UploadSession>;
-
-  DeleteSession(): Promise<UploadSession>;
-
-  Cancel(): Promise<void>;
+/**
+ * @interface
+ * Signature to represent progress receiver
+ * @property {number} progress - The progress value
+ */
+export interface IProgress {
+  report(progress: number): void;
 }
 
+/**
+ * @interface
+ * Signature to represent an upload session, i.e the response returned by the server after for a pending upload
+ *
+ * @property {Date} expirationDateTime - The expiration time of the session
+ * @property {string[]} nextExpectedRanges - The next expected ranges
+ * @property {string} odataType - The type of the object
+ * @property {string} uploadUrl - The URL to which the file upload needs to be done
+ */
+export interface UploadSession {
+  expirationDateTime?: Date | null;
+  nextExpectedRanges?: string[] | null;
+  odataType?: string | null;
+  uploadUrl?: string | null;
+}
+
+/**
+ * @constant
+ * A default slice size for a large file
+ */
 const DefaultSliceSize = 320 * 1024;
 
-export class LargeFileUploadTask<T extends Parsable> implements ILargeFileUploadTask<T> {
+/**
+ * A class representing LargeFileUploadTask
+ */
+export class LargeFileUploadTask<T extends Parsable> {
+  /**
+   * @private
+   * The ranges to upload
+   */
   rangesRemaining: number[][] = [];
+
+  /**
+   * @private
+   * The upload session
+   */
   Session: UploadSession;
 
   constructor(
@@ -41,13 +77,20 @@ export class LargeFileUploadTask<T extends Parsable> implements ILargeFileUpload
     }
 
     this.Session = this.extractSessionInfo(uploadSession);
-    this.rangesRemaining = this.GetRangesRemaining(this.Session);
+    this.rangesRemaining = this.getRangesRemaining(this.Session);
   }
 
-  public async Upload(progress?: IProgress, maxTries = 3): Promise<UploadResult<T>> {
+  /**
+   * @public
+   * Uploads file in a sequential order by slicing the file in terms of ranges
+   * @param progress
+   * @param maxTries
+   * @constructor
+   */
+  public async upload(progress?: IProgress, maxTries = 3): Promise<UploadResult<T>> {
     let uploadTries = 0;
     while (uploadTries < maxTries) {
-      const sliceRequests = this.GetUploadSliceRequests();
+      const sliceRequests = this.getUploadSliceRequests();
       for (const request of sliceRequests) {
         const uploadResult = await request.UploadSlice(this.uploadStream);
         progress?.report(request.rangeEnd);
@@ -68,7 +111,13 @@ export class LargeFileUploadTask<T extends Parsable> implements ILargeFileUpload
     throw new Error("Max retries reached");
   }
 
-  public Resume(_?: IProgress): Promise<UploadResult<T>> {
+  /**
+   * @public
+   * Resumes the current upload session
+   * @param _
+   * @constructor
+   */
+  public resume(_?: IProgress): Promise<UploadResult<T>> {
     throw new Error("Method not implemented.");
   }
 
@@ -109,7 +158,7 @@ export class LargeFileUploadTask<T extends Parsable> implements ILargeFileUpload
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  private GetUploadSliceRequests(): UploadSliceRequestBuilder<T>[] {
+  private getUploadSliceRequests(): UploadSliceRequestBuilder<T>[] {
     const uploadSlices: UploadSliceRequestBuilder<T>[] = [];
     const rangesRemaining = this.rangesRemaining;
     const session = this.Session;
@@ -136,7 +185,12 @@ export class LargeFileUploadTask<T extends Parsable> implements ILargeFileUpload
     return sizeBasedOnRange > this.maxSliceSize ? this.maxSliceSize : sizeBasedOnRange;
   }
 
-  private GetRangesRemaining(uploadSession: UploadSession): number[][] {
+  /**
+   * @private
+   * Parses the upload session response and returns a nested number array of ranges pending upload
+   * @param uploadSession
+   */
+  private getRangesRemaining(uploadSession: UploadSession): number[][] {
     // nextExpectedRanges: https://dev.onedrive.com/items/upload_large_files.htm
     // Sample: ["12345-55232","77829-99375"]
     // Also, second number in range can be blank, which means 'until the end'

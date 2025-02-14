@@ -1,10 +1,9 @@
 import { Parsable, ParseNode } from "@microsoft/kiota-abstractions";
-import { UploadSession } from "./UploadSession";
-import { ILargeFileUploadTask } from "./LargeFileUploadTask";
+import { LargeFileUploadTask, UploadSession } from "./LargeFileUploadTask";
 
 export class UploadResult<T extends Parsable> {
   uploadSession?: UploadSession;
-  uploadTask?: ILargeFileUploadTask<T>;
+  uploadTask?: LargeFileUploadTask<T>;
   itemResponse?: T;
   location?: string;
 
