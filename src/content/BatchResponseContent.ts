@@ -9,31 +9,7 @@
  * @module BatchResponseContent
  */
 
-/**
- * @interface
- * Signature represents key value pair object
- */
-export interface BatchItem {
-  id: string;
-  method: string | undefined;
-  url: string | undefined;
-  headers: Record<string, string> | undefined;
-  body: BodyInit;
-  dependsOn: string[] | undefined;
-  status: number | undefined;
-  statusText: string | undefined;
-}
-
-/**
- * @interface
- * Signature representing Batch response body
- * @property {BatchResponseBody[]} responses - An array of key value pair representing response object for every request
- * @property {string} [@odata.nextLink] - The nextLink value to get next set of responses in case of asynchronous batch requests
- */
-export interface BatchResponseBody {
-  responses: BatchItem[];
-  "@odata.nextLink"?: string;
-}
+import { BatchItem, BatchResponse, BatchResponseCollection } from "./BatchItem";
 
 /**
  * @class
@@ -43,12 +19,7 @@ export class BatchResponseContent {
   /**
    * To hold the responses
    */
-  private readonly responses: Map<string, Response>;
-
-  /**
-   * Holds the next link url
-   */
-  private nextLink: string | undefined;
+  private readonly responses: Map<string, BatchItem>;
 
   /**
    * @public
@@ -57,34 +28,9 @@ export class BatchResponseContent {
    * @param {BatchResponseBody} response - The response body returned for batch request from server
    * @returns An instance of a BatchResponseContent
    */
-  public constructor(response: BatchResponseBody) {
+  public constructor(response: BatchResponseCollection) {
     this.responses = new Map();
     this.update(response);
-  }
-
-  /**
-   * @private
-   * Creates native Response object from the json representation of it.
-   * @param {BatchItem} responseJSON - The response json value
-   * @returns The Response Object instance
-   */
-  private createResponseObject(responseJSON: BatchItem): Response {
-    const body = responseJSON.body;
-    const options: ResponseInit = {
-      status: responseJSON.status,
-      statusText: responseJSON.statusText,
-      headers: responseJSON.headers,
-    };
-
-    const headers = new Headers(options.headers);
-    if (headers.has("Content-Type")) {
-      const contentType = headers.get("Content-Type") ?? "";
-      if (contentType.split(";")[0] === "application/json") {
-        const bodyString = JSON.stringify(body);
-        return new Response(bodyString, options);
-      }
-    }
-    return new Response(body, options);
   }
 
   /**
@@ -93,12 +39,22 @@ export class BatchResponseContent {
    * @param {BatchResponseBody} response - The response json representing batch response message
    * @returns Nothing
    */
-  public update(response: BatchResponseBody): void {
-    this.nextLink = response["@odata.nextLink"];
+  public update(response: BatchResponseCollection): void {
     const responses = response.responses;
     for (let i = 0, l = responses.length; i < l; i++) {
-      this.responses.set(responses[i].id, this.createResponseObject(responses[i]));
+      this.responses.set(responses[i].id, this.convertFromBatchItem(responses[i]));
     }
+  }
+  private convertFromBatchItem(batchItem: BatchResponse): BatchItem {
+    return {
+      id: batchItem.id,
+      method: batchItem.method,
+      url: batchItem.url,
+      headers: batchItem.headers?.getValue() as Record<string, string>,
+      body: batchItem.body?.getValue() as Record<string, string>,
+      dependsOn: batchItem.dependsOn,
+      status: batchItem.status,
+    };
   }
 
   /**
@@ -107,16 +63,16 @@ export class BatchResponseContent {
    * @param {string} requestId - The request id value
    * @returns The Response object instance for the particular request
    */
-  public getResponseById(requestId: string): Response {
-    return this.responses.get(requestId)!;
+  public getResponseById(requestId: string): BatchItem | undefined {
+    return this.responses.get(requestId);
   }
 
   /**
    * @public
    * To get all the responses of the batch request
-   * @returns The Map of id and Response objects
+   * @returns The Map object containing the response objects
    */
-  public getResponses(): Map<string, Response> {
+  public getResponses(): Map<string, BatchItem> {
     return this.responses;
   }
 
@@ -125,7 +81,7 @@ export class BatchResponseContent {
    * To get the iterator for the responses
    * @returns The Iterable generator for the response objects
    */
-  public *getResponsesIterator(): IterableIterator<[string, Response]> {
+  public *getResponsesIterator(): IterableIterator<[string, BatchItem]> {
     const iterator = this.responses.entries();
     let cur = iterator.next();
     while (!cur.done) {

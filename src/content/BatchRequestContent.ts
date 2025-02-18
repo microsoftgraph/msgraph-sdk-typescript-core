@@ -1,3 +1,13 @@
+import { RequestAdapter, RequestInformation, HttpMethod, createGuid } from "@microsoft/kiota-abstractions";
+import {
+  BatchItem,
+  BatchRequestCollection,
+  BatchResponseCollection,
+  createBatchResponseContentFromDiscriminatorValue,
+  serializeBatchRequestBody,
+} from "./BatchItem";
+import { BatchResponseContent } from "./BatchResponseContent";
+
 /**
  * -------------------------------------------------------------------------------------------
  * Copyright (c) Microsoft Corporation.  All Rights Reserved.  Licensed under the MIT License.
@@ -7,85 +17,11 @@
 
 /**
  * @module BatchRequestContent
- **/
-
-import {
-  HttpMethod,
-  type Parsable,
-  type ParseNode,
-  RequestAdapter,
-  RequestInformation,
-  type SerializationWriter,
-} from "@microsoft/kiota-abstractions";
-import { BatchItem, BatchResponseBody, BatchResponseContent } from "./BatchResponseContent";
+ */
 
 /**
  * @interface
- * Signature to represent the buffer request body parsing method
- * @property {Function} buffer - Returns a promise that resolves to a buffer of the request body
- */
-interface NodeBody {
-  buffer(): Promise<Buffer>;
-}
-
-/**
- * @interface
- * Signature to represent the Request for both Node and browser environments
- * @extends Request
- * @extends NodeBody
- */
-interface IsomorphicRequest extends Request, NodeBody {}
-
-/**
- * @interface
- * Signature representing BatchRequestStep data
- * @property {string} id - Unique identity for the request, Should not be an empty string
- * @property {string[]} [dependsOn] - Array of dependencies
- * @property {Request} request - The Request object
- */
-export interface BatchRequestStep {
-  id: string;
-  dependsOn?: string[];
-  request: Request;
-}
-
-/**
- * @interface
- * Signature representing single request in a Batching
- * @extends RequestInit
- * @see {@link https://github.com/Microsoft/TypeScript/blob/main/lib/lib.dom.d.ts#L1337} and {@link https://fetch.spec.whatwg.org/#requestinit}
- *
- * @property {string} url - The url value of the request
- */
-
-export interface RequestData extends RequestInit {
-  url: string;
-}
-
-/**
- * @interface
- * Signature representing batch request data
- * @property {string} id - Unique identity for the request, Should not be an empty string
- * @property {string[]} [dependsOn] - Array of dependencies
- */
-export interface BatchRequestData extends RequestData {
-  id: string;
-  dependsOn?: string[];
-}
-
-/**
- * @interface
- * Signature representing batch request body
- * @property {BatchRequestData[]} requests - Array of request data, a json representation of requests for batch
- */
-
-export interface BatchRequestBody {
-  requests: BatchRequestData[];
-}
-
-/**
- * @class
- * Class for handling BatchRequestContent
+ * Signature represents key value pair object
  */
 export class BatchRequestContent {
   /**
@@ -101,13 +37,19 @@ export class BatchRequestContent {
    * @public
    * To keep track of requests, key will be id of the request and value will be the request json
    */
-  public requests: Map<string, BatchRequestStep>;
+  public requests: Map<string, BatchItem>;
 
   /**
-   * @public
-   * The request adapter instance
+   * @private
+   * @static
+   * Executes the requests in the batch request content
    */
-  public requestAdapter: RequestAdapter;
+  private readonly requestAdapter: RequestAdapter;
+
+  constructor(requestAdapter: RequestAdapter) {
+    this.requests = new Map<string, BatchItem>();
+    this.requestAdapter = requestAdapter;
+  }
 
   /**
    * @private
@@ -126,8 +68,8 @@ export class BatchRequestContent {
    * @returns The boolean indicating the validation status
    */
 
-  private static validateDependencies(requests: Map<string, BatchRequestStep>): boolean {
-    const isParallel = (reqs: Map<string, BatchRequestStep>): boolean => {
+  private static validateDependencies(requests: Map<string, BatchItem>): boolean {
+    const isParallel = (reqs: Map<string, BatchItem>): boolean => {
       const iterator = reqs.entries();
       let cur = iterator.next();
       while (!cur.done) {
@@ -139,18 +81,18 @@ export class BatchRequestContent {
       }
       return true;
     };
-    const isSerial = (reqs: Map<string, BatchRequestStep>): boolean => {
+    const isSerial = (reqs: Map<string, BatchItem>): boolean => {
       const iterator = reqs.entries();
       let cur = iterator.next();
       if (cur.done || cur.value === undefined) return false;
-      const firstRequest: BatchRequestStep = cur.value[1];
+      const firstRequest: BatchItem = cur.value[1];
       if (firstRequest.dependsOn !== undefined && firstRequest.dependsOn.length > 0) {
         return false;
       }
       let prev = cur;
       cur = iterator.next();
       while (!cur.done) {
-        const curReq: BatchRequestStep = cur.value[1];
+        const curReq: BatchItem = cur.value[1];
         if (
           curReq.dependsOn === undefined ||
           curReq.dependsOn.length !== 1 ||
@@ -163,11 +105,11 @@ export class BatchRequestContent {
       }
       return true;
     };
-    const isSame = (reqs: Map<string, BatchRequestStep>): boolean => {
+    const isSame = (reqs: Map<string, BatchItem>): boolean => {
       const iterator = reqs.entries();
       let cur = iterator.next();
       if (cur.done || cur.value === undefined) return false;
-      const firstRequest: BatchRequestStep = cur.value[1];
+      const firstRequest: BatchItem = cur.value[1];
       let dependencyId: string;
       if (firstRequest.dependsOn === undefined || firstRequest.dependsOn.length === 0) {
         dependencyId = firstRequest.id;
@@ -210,123 +152,12 @@ export class BatchRequestContent {
   }
 
   /**
-   * @private
-   * @static
-   * @async
-   * Converts Request Object instance to a JSON
-   * @param {IsomorphicRequest} request - The IsomorphicRequest Object instance
-   * @returns A promise that resolves to JSON representation of a request
-   */
-  private static async getRequestData(request: IsomorphicRequest): Promise<RequestData> {
-    const requestData: RequestData = {
-      url: "",
-    };
-    // Stripping off hostname, port and url scheme
-    requestData.url = request.url.replace(/^(?:http)?s?:?(?:\/\/)?[^/]+\/(?:v1.0|beta)?/i, ""); // replaces <scheme>?<?>?<//><hostname:port>+</>?<version>+ by an empty string
-    requestData.method = request.method;
-    const headers: { [key: string]: string } = {};
-    request.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
-    if (Object.keys(headers).length) {
-      requestData.headers = headers;
-    }
-    if ([HttpMethod.PATCH, HttpMethod.POST, HttpMethod.PUT].includes(request.method as HttpMethod)) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      requestData.body = await BatchRequestContent.getRequestBody(request);
-    }
-    /**
-     * TODO: Check any other property needs to be used from the Request object and add them
-     */
-    return requestData;
-  }
-
-  /**
-   * @private
-   * @static
-   * @async
-   * Gets the body of a Request object instance
-   * @param {IsomorphicRequest} request - The IsomorphicRequest object instance
-   * @returns The Promise that resolves to a body value of a Request
-   */
-  private static async getRequestBody(request: IsomorphicRequest): Promise<any> {
-    let bodyParsed = false;
-    let body;
-    try {
-      const cloneReq = request.clone();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      body = await cloneReq.json();
-      bodyParsed = true;
-    } catch {
-      // suppress the exception
-    }
-    if (!bodyParsed) {
-      if (typeof Blob !== "undefined") {
-        const blob = await request.blob();
-        const reader = new FileReader();
-        body = await new Promise(resolve => {
-          reader.addEventListener(
-            "load",
-            () => {
-              const dataURL = reader.result as string;
-              /**
-               * Some valid dataURL schemes:
-               *  1. data:text/vnd-example+xyz;foo=bar;base64,R0lGODdh
-               *  2. data:text/plain;charset=UTF-8;page=21,the%20data:1234,5678
-               *  3. data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==
-               *  4. data:image/png,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==
-               *  5. data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==
-               * @see Syntax {@link https://en.wikipedia.org/wiki/Data_URI_scheme} for more
-               */
-              const regex = new RegExp("^s*data:(.+?/.+?(;.+?=.+?)*)?(;base64)?,(.*)s*$");
-              const segments = regex.exec(dataURL);
-              if (segments) {
-                resolve(segments[4]);
-              }
-            },
-            false,
-          );
-          reader.readAsDataURL(blob);
-        });
-      } else if (typeof Buffer !== "undefined") {
-        const buffer = await request.buffer();
-        body = buffer.toString("base64");
-      }
-    }
-    return body;
-  }
-
-  /**
-   * @public
-   * @constructor
-   * Constructs a BatchRequestContent instance
-   * @param requestAdapter - The request adapter instance
-   * @param {BatchRequestStep[]} [requests] - Array of requests value
-   * @returns An instance of a BatchRequestContent
-   */
-  public constructor(requestAdapter: RequestAdapter, requests?: BatchRequestStep[]) {
-    this.requests = new Map();
-    this.requestAdapter = requestAdapter;
-    if (typeof requests !== "undefined") {
-      const limit = BatchRequestContent.requestLimit;
-      if (requests.length > limit) {
-        const error = new Error(`Maximum requests limit exceeded, Max allowed number of requests are ${limit}`);
-        error.name = "Limit Exceeded Error";
-        throw error;
-      }
-      for (const req of requests) {
-        this.addRequest(req);
-      }
-    }
-  }
-
-  /**
    * @public
    * Adds a request to the batch request content
    * @param {BatchRequestStep} request - The request value
    * @returns The id of the added request
    */
-  public addRequest(request: BatchRequestStep): string {
+  public addRequest(request: BatchItem): string {
     const limit = BatchRequestContent.requestLimit;
     if (request.id === "") {
       const error = new Error(`Id for a request is empty, Please provide an unique id`);
@@ -349,183 +180,63 @@ export class BatchRequestContent {
 
   /**
    * @public
-   * Removes request from the batch payload and its dependencies from all dependents
-   * @param {string} requestId - The id of a request that needs to be removed
-   * @returns The boolean indicating removed status
+   * Receives a request information object, converts it and adds it to the batch request execution chain
+   * @param requestInformation
    */
-  public removeRequest(requestId: string): boolean {
-    const deleteStatus = this.requests.delete(requestId);
-    const iterator = this.requests.entries();
-    let cur = iterator.next();
-    /**
-     * Removing dependencies where this request is present as a dependency
-     */
-    while (!cur.done) {
-      const dependencies = cur.value[1].dependsOn;
-      if (dependencies !== undefined) {
-        const index = dependencies.indexOf(requestId);
-        if (index !== -1) {
-          dependencies.splice(index, 1);
-        }
-        if (dependencies.length === 0) {
-          delete cur.value[1].dependsOn;
-        }
-      }
-      cur = iterator.next();
-    }
-    return deleteStatus;
+  public addBatchRequest(requestInformation: RequestInformation): string {
+    return this.addRequest(this.toBatchItem(requestInformation));
   }
 
-  /**
-   * @public
-   * @async
-   * Serialize content from BatchRequestContent instance
-   * @returns The body content to make batch request
-   */
-  public async getContent(): Promise<BatchRequestBody> {
-    const requests: BatchRequestData[] = [];
-    const requestBody: BatchRequestBody = {
-      requests,
+  private toBatchItem(requestInformation: RequestInformation): BatchItem {
+    if (requestInformation.pathParameters && requestInformation.pathParameters.baseurl === undefined) {
+      requestInformation.pathParameters.baseurl = this.requestAdapter.baseUrl;
+    }
+
+    // TODO replace url from path parameters
+
+    const content = requestInformation.content ? new TextDecoder().decode(requestInformation.content) : undefined;
+    let body: Map<string, any> | undefined;
+    if (content !== undefined) {
+      body = new Map<string, any>(Object.entries(JSON.parse(content) as { [s: string]: any }));
+    }
+
+    let headers: Record<string, any> | undefined;
+    if (headers !== undefined) {
+      headers = Object.fromEntries(requestInformation.headers.entries()) as unknown as Record<string, string>;
+    }
+
+    const uriString = requestInformation.URL;
+    const url = uriString.replace(this.requestAdapter.baseUrl, "");
+
+    const method = requestInformation.httpMethod?.toString();
+
+    return {
+      id: createGuid(),
+      method: method!,
+      url,
+      headers,
+      body,
     };
-    const iterator = this.requests.entries();
-    let cur = iterator.next();
-    if (cur.done) {
-      const error = new Error("No requests added yet, Please add at least one request.");
-      error.name = "Empty Payload";
-      throw error;
-    }
+  }
+
+  private readonly getContent = (): BatchRequestCollection => {
+    const content = {
+      requests: Array.from(this.requests.values()),
+    };
     if (!BatchRequestContent.validateDependencies(this.requests)) {
-      const error = new Error(`Invalid dependency found, Dependency should be:
-1. Parallel - no individual request states a dependency in the dependsOn property.
-2. Serial - all individual requests depend on the previous individual request.
-3. Same - all individual requests that state a dependency in the dependsOn property, state the same dependency.`);
-      error.name = "Invalid Dependency";
+      const error = new Error("Invalid dependency chain found in the requests, Please provide valid dependency chain");
+      error.name = "Invalid Dependency Chain Error";
       throw error;
     }
-    while (!cur.done) {
-      const requestStep: BatchRequestStep = cur.value[1];
-      const batchRequestData: BatchRequestData = (await BatchRequestContent.getRequestData(
-        requestStep.request as IsomorphicRequest,
-      )) as BatchRequestData;
-      /**
-       * @see{@https://tools.ietf.org/html/rfc7578#section-4.4}
-       * TODO- Setting/Defaulting of content-type header to the correct value
-       * @see {@link https://developer.microsoft.com/en-us/graph/docs/concepts/json_batching#request-format}
-       */
-      const headers = new Headers(batchRequestData.headers);
-      if (
-        batchRequestData.body !== undefined &&
-        (batchRequestData.headers === undefined || headers.has("Content-Type"))
-      ) {
-        const error = new Error(
-          `Content-type header is not mentioned for request #${requestStep.id}, For request having body, Content-type header should be mentioned`,
-        );
-        error.name = "Invalid Content-type header";
-        throw error;
-      }
-      batchRequestData.id = requestStep.id;
-      if (requestStep.dependsOn !== undefined && requestStep.dependsOn.length > 0) {
-        batchRequestData.dependsOn = requestStep.dependsOn;
-      }
-      requests.push(batchRequestData);
-      cur = iterator.next();
-    }
-    requestBody.requests = requests;
-    return requestBody;
-  }
-
-  /**
-   * @public
-   * Adds a dependency for a given dependent request
-   * @param {string} dependentId - The id of the dependent request
-   * @param {string} [dependencyId] - The id of the dependency request, if not specified the preceding request will be considered as a dependency
-   * @returns Nothing
-   */
-  public addDependency(dependentId: string, dependencyId?: string): void {
-    if (!this.requests.has(dependentId)) {
-      const error = new Error(`Dependent ${dependentId} does not exists, Please check the id`);
-      error.name = "Invalid Dependent";
-      throw error;
-    }
-    if (typeof dependencyId !== "undefined" && !this.requests.has(dependencyId)) {
-      const error = new Error(`Dependency ${dependencyId} does not exists, Please check the id`);
-      error.name = "Invalid Dependency";
-      throw error;
-    }
-    if (typeof dependencyId !== "undefined") {
-      const dependent = this.requests.get(dependentId)!;
-      if (dependent.dependsOn === undefined) {
-        dependent.dependsOn = [];
-      }
-      if (dependent.dependsOn.includes(dependencyId)) {
-        const error = new Error(`Dependency ${dependencyId} is already added for the request ${dependentId}`);
-        error.name = "Duplicate Dependency";
-        throw error;
-      }
-      dependent.dependsOn.push(dependencyId);
-    } else {
-      const iterator = this.requests.entries();
-      let prev;
-      let cur = iterator.next();
-      while (!cur.done && cur.value[1].id !== dependentId) {
-        prev = cur;
-        cur = iterator.next();
-      }
-      if (cur.done || cur.value === undefined) {
-        const error = new Error(`Can't add dependency ${dependencyId}, There is no preceding request in the batch`);
-        error.name = "Invalid Dependency Addition";
-        throw error;
-      }
-      if (typeof prev !== "undefined") {
-        const dId = prev.value[0];
-        if (cur.value[1].dependsOn === undefined) {
-          cur.value[1].dependsOn = [];
-        }
-        if (cur.value[1].dependsOn.includes(dId)) {
-          const error = new Error(`Dependency ${dId} is already added for the request ${dependentId}`);
-          error.name = "Duplicate Dependency";
-          throw error;
-        }
-        cur.value[1].dependsOn.push(dId);
-      } else {
-        const error = new Error(`Can't add dependency ${dependencyId}, There is only a dependent request in the batch`);
-        error.name = "Invalid Dependency Addition";
-        throw error;
-      }
-    }
-  }
-
-  /**
-   * @public
-   * Removes a dependency for a given dependent request id
-   * @param {string} dependentId - The id of the dependent request
-   * @param {string} [dependencyId] - The id of the dependency request, if not specified will remove all the dependencies of that request
-   * @returns The boolean indicating removed status
-   */
-  public removeDependency(dependentId: string, dependencyId?: string): boolean {
-    const request = this.requests.get(dependentId);
-    if (request?.dependsOn === undefined || request.dependsOn.length === 0) {
-      return false;
-    }
-    if (typeof dependencyId !== "undefined") {
-      const index = request.dependsOn.indexOf(dependencyId);
-      if (index === -1) {
-        return false;
-      }
-      request.dependsOn.splice(index, 1);
-      return true;
-    } else {
-      delete request.dependsOn;
-      return true;
-    }
-  }
+    return content;
+  };
 
   public async postAsync(): Promise<BatchResponseContent | undefined> {
     const requestInformation = new RequestInformation();
     requestInformation.httpMethod = HttpMethod.POST;
     requestInformation.urlTemplate = "{+baseurl}/$batch";
 
-    const content = await this.getContent();
+    const content = this.getContent();
     requestInformation.setContentFromParsable(
       this.requestAdapter,
       "application/json",
@@ -535,7 +246,7 @@ export class BatchRequestContent {
 
     requestInformation.headers.add("Content-Type", "application/json");
 
-    const result = await this.requestAdapter.send<BatchResponseBody>(
+    const result = await this.requestAdapter.send<BatchResponseCollection>(
       requestInformation,
       createBatchResponseContentFromDiscriminatorValue,
       undefined,
@@ -548,89 +259,3 @@ export class BatchRequestContent {
     }
   }
 }
-
-export const serializeBatchRequestBody = (
-  writer: SerializationWriter,
-  batchRequestBody: Partial<BatchRequestBody> | undefined | null = {},
-): void => {
-  if (batchRequestBody) {
-    writer.writeCollectionOfObjectValues("requests", batchRequestBody.requests, serializeBatchRequestData);
-  }
-};
-
-export const serializeBatchRequestData = (
-  writer: SerializationWriter,
-  batchRequestData: Partial<BatchRequestData> | undefined | null = {},
-): void => {
-  if (batchRequestData) {
-    writer.writeStringValue("id", batchRequestData.id);
-    writer.writeCollectionOfPrimitiveValues("dependsOn", batchRequestData.dependsOn);
-  }
-};
-
-export const createBatchResponseContentFromDiscriminatorValue = (
-  _parseNode: ParseNode | undefined,
-): ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) => {
-  return deserializeIntoBatchResponseContent;
-};
-
-export const deserializeIntoBatchResponseContent = (
-  batchResponseBody: Partial<BatchResponseBody> | undefined = {},
-): Record<string, (node: ParseNode) => void> => {
-  return {
-    responses: n => {
-      batchResponseBody.responses = n.getCollectionOfObjectValues(createBatchItemFromDiscriminatorValue);
-    },
-    "@odata.nextLink": n => {
-      batchResponseBody["@odata.nextLink"] = n.getStringValue();
-    },
-  };
-};
-
-export const createBatchItemFromDiscriminatorValue = (
-  _parseNode: ParseNode | undefined,
-): ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) => {
-  return deserializeIntoBatchItem;
-};
-
-export const deserializeIntoBatchItem = (
-  batchItem: Partial<BatchItem> | undefined = {},
-): Record<string, (node: ParseNode) => void> => {
-  return {
-    id: n => {
-      batchItem.id = n.getStringValue();
-    },
-    method: n => {
-      batchItem.method = n.getStringValue();
-    },
-    url: n => {
-      batchItem.url = n.getStringValue();
-    },
-    dependsOn: n => {
-      batchItem.dependsOn = n.getCollectionOfPrimitiveValues();
-    },
-    status: n => {
-      batchItem.status = n.getNumberValue();
-    },
-    headers: n => {
-      const rawValue = n.getByteArrayValue();
-      if (rawValue) {
-        const text = new TextDecoder("utf-8").decode(new Uint8Array(rawValue));
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const parsed = JSON.parse(text);
-
-        const record: Record<string, string> = {};
-        for (const key in parsed) {
-          if (Object.prototype.hasOwnProperty.call(parsed, key)) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            record[key] = parsed[key] as string;
-          }
-        }
-        batchItem.headers = record;
-      }
-    },
-    body: n => {
-      batchItem.body = n.getByteArrayValue();
-    },
-  };
-};
