@@ -25,9 +25,8 @@ import { Headers } from "@microsoft/kiota-abstractions/dist/es/src/headers";
  */
 export interface PageCollection<T> {
   value: T[];
-  "@odata.nextLink"?: string;
-  "@odata.deltaLink"?: string;
-
+  odataNextLink?: string;
+  odataDeltaLink?: string;
   [Key: string]: any;
 }
 
@@ -103,13 +102,13 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
    */
   public constructor(
     adapter: RequestAdapter,
-    pageResult: C | undefined,
+    pageResult: C,
     callback: PageIteratorCallback<T>,
     parsableFactory: ParsableFactory<C>,
     errorMappings?: ErrorMappings,
   ) {
     this.requestAdapter = adapter;
-    this.currentPage = pageResult as unknown as PageCollection<T>;
+    this.currentPage = this.castPageCollection(pageResult);
     this.cursor = 0;
     this.complete = false;
     this.errorMappings = errorMappings;
@@ -120,13 +119,24 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
     this.headers.set("Content-Type", new Set(["application/json"]));
   }
 
+  private castPageCollection(pageResult: C): PageCollection<T> {
+    const result: PageCollection<T> = { value: [] };
+    for (const key in pageResult) {
+      if (Object.prototype.hasOwnProperty.call(pageResult, key)) {
+        result[key] = pageResult[key];
+      }
+    }
+    return result;
+  }
+
   /**
    * @public
    * Getter to get the deltaLink in the current response
    * @returns A deltaLink which is being used to make delta requests in future
    */
   public getOdataDeltaLink(): string | undefined {
-    return this.currentPage?.["@odata.deltaLink"];
+    const deltaLink = this.currentPage?.["@odata.deltaLink"] as string | undefined;
+    return this.currentPage?.odataDeltaLink ?? deltaLink;
   }
 
   /**
@@ -135,7 +145,8 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
    * @returns A nextLink which is being used to make requests in future
    */
   public getOdataNextLink(): string | undefined {
-    return this.currentPage?.["@odata.nextLink"];
+    const nextLink = this.currentPage?.["@odata.nextLink"] as string | undefined;
+    return this.currentPage?.odataNextLink ?? nextLink;
   }
 
   /**
@@ -153,7 +164,10 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
       if (!advance) {
         return;
       }
-      if (this.getOdataNextLink() !== undefined || this.getOdataNextLink() !== null || this.getOdataNextLink() !== "") {
+
+      const nextLink = this.getOdataNextLink();
+      console.error("Next link is :" + nextLink);
+      if (nextLink !== undefined || nextLink !== "") {
         return;
       }
 
@@ -183,7 +197,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
       this.errorMappings,
     );
     if (graphRequest != null) {
-      return graphRequest as PageCollection<T>;
+      return this.castPageCollection(graphRequest);
     }
 
     return Promise.resolve(undefined);
