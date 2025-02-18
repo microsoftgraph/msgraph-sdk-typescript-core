@@ -57,7 +57,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
    * @private
    * Member holding a complete/incomplete status of an iterator
    */
-  private readonly complete: boolean;
+  private complete: boolean;
 
   /**
    * @private
@@ -166,8 +166,8 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
       }
 
       const nextLink = this.getOdataNextLink();
-      console.error("Next link is :" + nextLink);
-      if (nextLink !== undefined || nextLink !== "") {
+      if ((nextLink !== undefined || nextLink !== "") && this.cursor >= (this.currentPage?.value.length ?? 0)) {
+        this.complete = true;
         return;
       }
 
