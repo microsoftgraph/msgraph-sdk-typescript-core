@@ -9,7 +9,16 @@
  * @module BatchResponseContent
  */
 
-import { BatchItem, BatchResponse, BatchResponseCollection } from "./BatchItem";
+import { UntypedBatchResponse, BatchResponseCollection, BatchResponse } from "./BatchItem";
+import {
+  UntypedNode,
+  isUntypedString,
+  isUntypedBoolean,
+  isUntypedNull,
+  isUntypedNumber,
+  isUntypedArray,
+  isUntypedObject,
+} from "@microsoft/kiota-abstractions";
 
 /**
  * @class
@@ -19,7 +28,7 @@ export class BatchResponseContent {
   /**
    * To hold the responses
    */
-  private readonly responses: Map<string, BatchItem>;
+  private readonly responses: Map<string, BatchResponse>;
 
   /**
    * @public
@@ -45,16 +54,47 @@ export class BatchResponseContent {
       this.responses.set(responses[i].id, this.convertFromBatchItem(responses[i]));
     }
   }
-  private convertFromBatchItem(batchItem: BatchResponse): BatchItem {
+
+  /**
+   * @private
+   * Converts the untyped batch item to typed batch response
+   * @param batchItem
+   */
+  private convertFromBatchItem(batchItem: UntypedBatchResponse): BatchResponse {
     return {
       id: batchItem.id,
-      method: batchItem.method,
-      url: batchItem.url,
-      headers: batchItem.headers?.getValue() as Record<string, string>,
-      body: batchItem.body?.getValue() as Record<string, string>,
-      dependsOn: batchItem.dependsOn,
+      headers: this.getUntypedNodeValue(batchItem.headers) as Record<string, string> | null,
+      body: this.getUntypedNodeValue(batchItem.body) as Record<string, unknown> | null,
       status: batchItem.status,
     };
+  }
+
+  /**
+   * @private
+   * Unwraps the untyped node value
+   * @param untypedValue
+   */
+  private getUntypedNodeValue(untypedValue: UntypedNode | null | undefined): unknown {
+    if (!untypedValue) {
+      return null;
+    }
+    if (
+      isUntypedString(untypedValue) ||
+      isUntypedBoolean(untypedValue) ||
+      isUntypedNull(untypedValue) ||
+      isUntypedNumber(untypedValue)
+    ) {
+      return untypedValue.getValue();
+    } else if (isUntypedArray(untypedValue)) {
+      return untypedValue.getValue().map((item: UntypedNode) => this.getUntypedNodeValue(item));
+    } else if (isUntypedObject(untypedValue)) {
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(untypedValue.getValue())) {
+        result[key] = this.getUntypedNodeValue(value);
+      }
+      return result;
+    }
+    throw new Error("Unsupported untyped node type");
   }
 
   /**
@@ -63,7 +103,7 @@ export class BatchResponseContent {
    * @param {string} requestId - The request id value
    * @returns The Response object instance for the particular request
    */
-  public getResponseById(requestId: string): BatchItem | undefined {
+  public getResponseById(requestId: string): BatchResponse | undefined {
     return this.responses.get(requestId);
   }
 
@@ -72,7 +112,7 @@ export class BatchResponseContent {
    * To get all the responses of the batch request
    * @returns The Map object containing the response objects
    */
-  public getResponses(): Map<string, BatchItem> {
+  public getResponses(): Map<string, BatchResponse> {
     return this.responses;
   }
 
@@ -81,7 +121,7 @@ export class BatchResponseContent {
    * To get the iterator for the responses
    * @returns The Iterable generator for the response objects
    */
-  public *getResponsesIterator(): IterableIterator<[string, BatchItem]> {
+  public *getResponsesIterator(): IterableIterator<[string, BatchResponse]> {
     const iterator = this.responses.entries();
     let cur = iterator.next();
     while (!cur.done) {

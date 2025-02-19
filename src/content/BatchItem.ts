@@ -32,20 +32,27 @@ export interface BatchItem {
   headers?: Record<string, string> | null;
   body?: Record<string, any> | null;
   dependsOn?: string[];
-  status?: number;
 }
 
 /**
  * @interface
  * Signature represents payload structure for batch response
  */
-export interface BatchResponse {
+export interface UntypedBatchResponse {
   id: string;
-  method: string;
-  url: string;
   headers?: UntypedNode | null;
   body?: UntypedNode | null;
-  dependsOn?: string[];
+  status?: number;
+}
+
+/**
+ * @interface
+ * Signature represents unwrapped payload structure for batch response
+ */
+export interface BatchResponse {
+  id: string;
+  headers?: Record<string, string> | null;
+  body?: Record<string, unknown> | null;
   status?: number;
 }
 
@@ -62,7 +69,7 @@ export interface BatchRequestCollection {
  * Signature representing Batch response body
  */
 export interface BatchResponseCollection {
-  responses: BatchResponse[];
+  responses: UntypedBatchResponse[];
 }
 
 /**
@@ -142,29 +149,23 @@ export const createBatchResponseFromDiscriminatorValue = (
 
 /**
  * Deserializes the batch item
- * @param batchItem
+ * @param batchResponse
  */
 export const deserializeIntoBatchResponse = (
-  batchItem: Partial<BatchResponse> | undefined = {},
+  batchResponse: Partial<UntypedBatchResponse> | undefined = {},
 ): Record<string, (node: ParseNode) => void> => {
   return {
     id: n => {
-      batchItem.id = n.getStringValue();
-    },
-    method: n => {
-      batchItem.method = n.getStringValue();
-    },
-    url: n => {
-      batchItem.url = n.getStringValue();
-    },
-    dependsOn: n => {
-      batchItem.dependsOn = n.getCollectionOfPrimitiveValues();
+      batchResponse.id = n.getStringValue();
     },
     headers: n => {
-      batchItem.headers = n.getObjectValue<UntypedNode>(createUntypedNodeFromDiscriminatorValue);
+      batchResponse.headers = n.getObjectValue<UntypedNode>(createUntypedNodeFromDiscriminatorValue);
     },
     body: n => {
-      batchItem.body = n.getObjectValue<UntypedNode>(createUntypedNodeFromDiscriminatorValue);
+      batchResponse.body = n.getObjectValue<UntypedNode>(createUntypedNodeFromDiscriminatorValue);
+    },
+    status: n => {
+      batchResponse.status = n.getNumberValue();
     },
   };
 };
