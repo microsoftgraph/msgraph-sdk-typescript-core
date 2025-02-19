@@ -22,6 +22,8 @@ import {
   SerializationWriterFactoryRegistry,
 } from "@microsoft/kiota-abstractions";
 
+import { JsonSerializationWriterFactory } from "@microsoft/kiota-serialization-json";
+
 /**
  * @class
  * @implements DummyRequestAdapter
@@ -29,6 +31,23 @@ import {
  */
 export class DummyRequestAdapter implements RequestAdapter {
   baseUrl: string = "";
+  response: any[] = [];
+  serializationWriterFactory = new SerializationWriterFactoryRegistry();
+
+  constructor() {
+    const serializer = new JsonSerializationWriterFactory();
+    this.serializationWriterFactory.contentTypeAssociatedFactories.set(serializer.getValidContentType(), serializer);
+  }
+
+  // set the url
+  setBaseUrl(baseUrl: string): void {
+    this.baseUrl = baseUrl;
+  }
+
+  // set a fake response
+  setResponse(response: any): void {
+    this.response.push(response);
+  }
 
   convertToNativeRequest<T>(requestInfo: RequestInformation): Promise<T> {
     return Promise.resolve(undefined as T);
@@ -37,7 +56,7 @@ export class DummyRequestAdapter implements RequestAdapter {
   enableBackingStore(backingStoreFactory?: BackingStoreFactory): void {}
 
   getSerializationWriterFactory(): SerializationWriterFactory {
-    return SerializationWriterFactoryRegistry.defaultInstance;
+    return this.serializationWriterFactory;
   }
 
   send<ModelType extends Parsable>(
@@ -45,7 +64,7 @@ export class DummyRequestAdapter implements RequestAdapter {
     type: ParsableFactory<ModelType>,
     errorMappings: ErrorMappings | undefined,
   ): Promise<ModelType | undefined> {
-    return Promise.resolve(undefined);
+    return Promise.resolve(this.response.shift());
   }
 
   sendCollection<ModelType extends Parsable>(
@@ -53,7 +72,7 @@ export class DummyRequestAdapter implements RequestAdapter {
     type: ParsableFactory<ModelType>,
     errorMappings: ErrorMappings | undefined,
   ): Promise<ModelType[] | undefined> {
-    return Promise.resolve(undefined);
+    return Promise.resolve(this.response.shift());
   }
 
   sendCollectionOfEnum<EnumObject extends Record<string, unknown>>(
@@ -61,7 +80,7 @@ export class DummyRequestAdapter implements RequestAdapter {
     enumObject: EnumObject,
     errorMappings: ErrorMappings | undefined,
   ): Promise<EnumObject[keyof EnumObject][] | undefined> {
-    return Promise.resolve(undefined);
+    return Promise.resolve(this.response.shift());
   }
 
   sendCollectionOfPrimitive<ResponseType extends Exclude<PrimitiveTypesForDeserializationType, ArrayBuffer>>(
@@ -69,7 +88,7 @@ export class DummyRequestAdapter implements RequestAdapter {
     responseType: Exclude<PrimitiveTypesForDeserialization, "ArrayBuffer">,
     errorMappings: ErrorMappings | undefined,
   ): Promise<ResponseType[] | undefined> {
-    return Promise.resolve(undefined);
+    return Promise.resolve(this.response.shift());
   }
 
   sendEnum<EnumObject extends Record<string, unknown>>(
@@ -77,11 +96,11 @@ export class DummyRequestAdapter implements RequestAdapter {
     enumObject: EnumObject,
     errorMappings: ErrorMappings | undefined,
   ): Promise<EnumObject[keyof EnumObject] | undefined> {
-    return Promise.resolve(undefined);
+    return Promise.resolve(this.response.shift());
   }
 
   sendNoResponseContent(requestInfo: RequestInformation, errorMappings: ErrorMappings | undefined): Promise<void> {
-    return Promise.resolve(undefined);
+    return Promise.resolve(this.response.shift());
   }
 
   sendPrimitive<ResponseType extends PrimitiveTypesForDeserializationType>(
@@ -89,6 +108,6 @@ export class DummyRequestAdapter implements RequestAdapter {
     responseType: PrimitiveTypesForDeserialization,
     errorMappings: ErrorMappings | undefined,
   ): Promise<ResponseType | undefined> {
-    return Promise.resolve(undefined);
+    return Promise.resolve(this.response.shift());
   }
 }

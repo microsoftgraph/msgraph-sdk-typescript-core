@@ -7,6 +7,8 @@ import {
   serializeBatchRequestBody,
 } from "./BatchItem";
 import { BatchResponseContent } from "./BatchResponseContent";
+import { ErrorMappings } from "@microsoft/kiota-abstractions/dist/es/src/requestAdapter";
+import { createGraphErrorFromDiscriminatorValue } from "./GraphError";
 
 /**
  * -------------------------------------------------------------------------------------------
@@ -157,7 +159,7 @@ export class BatchRequestContent {
    * @param {BatchRequestStep} request - The request value
    * @returns The id of the added request
    */
-  public addRequest(request: BatchItem): string {
+  private addRequest(request: BatchItem): string {
     const limit = BatchRequestContent.requestLimit;
     if (request.id === "") {
       const error = new Error(`Id for a request is empty, Please provide an unique id`);
@@ -183,8 +185,10 @@ export class BatchRequestContent {
    * Receives a request information object, converts it and adds it to the batch request execution chain
    * @param requestInformation
    */
-  public addBatchRequest(requestInformation: RequestInformation): string {
-    return this.addRequest(this.toBatchItem(requestInformation));
+  public addBatchRequest(requestInformation: RequestInformation): BatchItem {
+    const batchItem = this.toBatchItem(requestInformation);
+    this.addRequest(batchItem);
+    return batchItem;
   }
 
   private toBatchItem(requestInformation: RequestInformation): BatchItem {
@@ -219,7 +223,7 @@ export class BatchRequestContent {
     };
   }
 
-  private readonly getContent = (): BatchRequestCollection => {
+  public readonly getContent = (): BatchRequestCollection => {
     const content = {
       requests: Array.from(this.requests.values()),
     };
@@ -231,7 +235,13 @@ export class BatchRequestContent {
     return content;
   };
 
-  public async postAsync(): Promise<BatchResponseContent | undefined> {
+  /**
+   * @public
+   * @async
+   * Executes the batch request
+   * @param errorMappings - The error mappings to be used while deserializing the response
+   */
+  public async postAsync(errorMappings?: ErrorMappings): Promise<BatchResponseContent | undefined> {
     const requestInformation = new RequestInformation();
     requestInformation.httpMethod = HttpMethod.POST;
     requestInformation.urlTemplate = "{+baseurl}/$batch";
@@ -246,10 +256,16 @@ export class BatchRequestContent {
 
     requestInformation.headers.add("Content-Type", "application/json");
 
+    if (!errorMappings) {
+      errorMappings = {
+        XXX: parseNode => createGraphErrorFromDiscriminatorValue(parseNode),
+      };
+    }
+
     const result = await this.requestAdapter.send<BatchResponseCollection>(
       requestInformation,
       createBatchResponseContentFromDiscriminatorValue,
-      undefined,
+      errorMappings,
     );
 
     if (result === undefined) {

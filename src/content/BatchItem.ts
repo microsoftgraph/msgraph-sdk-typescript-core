@@ -26,7 +26,7 @@ import {
  * Signature represents payload structure for batch request and response
  */
 export interface BatchItem {
-  id: string;
+  readonly id: string;
   method: string;
   url: string;
   headers?: Record<string, string> | null;
