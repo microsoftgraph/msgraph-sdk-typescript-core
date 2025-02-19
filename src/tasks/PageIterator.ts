@@ -110,11 +110,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
   ) {
     this.requestAdapter = adapter;
     const parsedValue = this.castPageCollection(pageResult);
-    if (
-      !parsedValue.value ||
-      !Array.isArray(parsedValue.value) ||
-      parsedValue.value.some(item => !(item instanceof T))
-    ) {
+    if (!parsedValue.value || !Array.isArray(parsedValue.value)) {
       throw new Error("The current page does not have a property of type value or contains invalid items");
     }
     this.currentPage = parsedValue;
