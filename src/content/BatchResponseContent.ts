@@ -25,7 +25,7 @@ export class BatchResponseContent {
    * @public
    * @constructor
    * Creates the BatchResponseContent instance
-   * @param {BatchResponseBody} response - The response body returned for batch request from server
+   * @param {BatchResponseCollection} response - The response body returned for batch request from server
    * @returns An instance of a BatchResponseContent
    */
   public constructor(response: BatchResponseCollection) {
@@ -36,7 +36,7 @@ export class BatchResponseContent {
   /**
    * @public
    * Updates the Batch response content instance with given responses.
-   * @param {BatchResponseBody} response - The response json representing batch response message
+   * @param {BatchResponseCollection} response - The response json representing batch response message
    * @returns Nothing
    */
   public update(response: BatchResponseCollection): void {
