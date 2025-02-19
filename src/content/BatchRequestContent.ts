@@ -9,6 +9,7 @@ import {
 import { BatchResponseContent } from "./BatchResponseContent";
 import { ErrorMappings } from "@microsoft/kiota-abstractions/dist/es/src/requestAdapter";
 import { createGraphErrorFromDiscriminatorValue } from "./GraphError";
+import { defaultUrlReplacementPairs } from "../utils/Constants";
 
 /**
  * -------------------------------------------------------------------------------------------
@@ -69,7 +70,6 @@ export class BatchRequestContent {
    * @param {Map<string, BatchRequestStep>} requests - The map of requests.
    * @returns The boolean indicating the validation status
    */
-
   private static validateDependencies(requests: Map<string, BatchItem>): boolean {
     const isParallel = (reqs: Map<string, BatchItem>): boolean => {
       const iterator = reqs.entries();
@@ -191,12 +191,21 @@ export class BatchRequestContent {
     return batchItem;
   }
 
+  /**
+   * @private
+   * Converts the request information object to a batch item
+   * @param requestInformation - The request information object
+   */
   private toBatchItem(requestInformation: RequestInformation): BatchItem {
     if (requestInformation.pathParameters && requestInformation.pathParameters.baseurl === undefined) {
       requestInformation.pathParameters.baseurl = this.requestAdapter.baseUrl;
     }
 
-    // TODO replace url from path parameters
+    let uriString = requestInformation.URL;
+
+    Object.keys(defaultUrlReplacementPairs).forEach(replacementKey => {
+      uriString = uriString.replace(replacementKey, defaultUrlReplacementPairs[replacementKey]);
+    });
 
     const content = requestInformation.content ? new TextDecoder().decode(requestInformation.content) : undefined;
     let body: Map<string, any> | undefined;
@@ -209,7 +218,6 @@ export class BatchRequestContent {
       headers = Object.fromEntries(requestInformation.headers.entries()) as unknown as Record<string, string>;
     }
 
-    const uriString = requestInformation.URL;
     const url = uriString.replace(this.requestAdapter.baseUrl, "");
 
     const method = requestInformation.httpMethod?.toString();
@@ -223,6 +231,11 @@ export class BatchRequestContent {
     };
   }
 
+  /**
+   * @public
+   * Gets the content of the batch request
+   * @returns The batch request collection
+   */
   public readonly getContent = (): BatchRequestCollection => {
     const content = {
       requests: Array.from(this.requests.values()),

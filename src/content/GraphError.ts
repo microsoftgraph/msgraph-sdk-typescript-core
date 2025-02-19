@@ -1,3 +1,18 @@
+/**
+ * -------------------------------------------------------------------------------------------
+ * Copyright (c) Microsoft Corporation.  All Rights Reserved.  Licensed under the MIT License.
+ * See License in the project root for license information.
+ * -------------------------------------------------------------------------------------------
+ */
+
+/**
+ * @module GraphError
+ */
+
+/**
+ * @interface
+ * Signature represents key value pair object
+ */
 import {
   createUntypedNodeFromDiscriminatorValue,
   Parsable,
@@ -5,6 +20,10 @@ import {
   UntypedNode,
 } from "@microsoft/kiota-abstractions";
 
+/**
+ * @interface
+ * Signature represents the structure of an error response
+ */
 export interface GraphError {
   /**
    * Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
