@@ -90,6 +90,18 @@ export const serializeBatchItem = (
 ): void => {
   if (batchRequestData) {
     writer.writeStringValue("id", batchRequestData.id);
+    writer.writeStringValue("method", batchRequestData.method);
+    writer.writeStringValue("url", batchRequestData.url);
+    const headers: UntypedNode = {
+      getValue: (): unknown => batchRequestData.headers,
+      value: batchRequestData.headers,
+    };
+    writer.writeObjectValue("headers", headers);
+    const body: UntypedNode = {
+      getValue: (): unknown => batchRequestData.body,
+      value: batchRequestData.body,
+    };
+    writer.writeObjectValue("body", body);
     writer.writeCollectionOfPrimitiveValues("dependsOn", batchRequestData.dependsOn);
   }
 };
