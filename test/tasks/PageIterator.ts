@@ -1,8 +1,8 @@
-import {assert, describe, it} from "vitest";
-import {PageCollection, PageIterator, PageIteratorCallback} from "../../src";
-import {Parsable, ParseNode} from "@microsoft/kiota-abstractions";
+import { assert, describe, it } from "vitest";
+import { PageCollection, PageIterator, PageIteratorCallback } from "../../src";
+import { Parsable, ParseNode } from "@microsoft/kiota-abstractions";
 // @ts-ignore
-import {DummyRequestAdapter} from "./DummyRequestAdapter";
+import { DummyRequestAdapter } from "../utils/DummyRequestAdapter";
 
 const value = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -21,16 +21,26 @@ const getPageCollectionWithNext = () => {
   };
 };
 
-export function createPageCollectionFromDiscriminatorValue(parseNode: ParseNode | undefined) : ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
+export function createPageCollectionFromDiscriminatorValue(
+  parseNode: ParseNode | undefined,
+): (instance?: Parsable) => Record<string, (node: ParseNode) => void> {
   return deserializeIntoPageCollection;
 }
 
-export function deserializeIntoPageCollection(baseDeltaFunctionResponse: Partial<PageCollection<number>> | undefined = {}) : Record<string, (node: ParseNode) => void> {
+export function deserializeIntoPageCollection(
+  baseDeltaFunctionResponse: Partial<PageCollection<number>> | undefined = {},
+): Record<string, (node: ParseNode) => void> {
   return {
-    "backingStoreEnabled": n => { baseDeltaFunctionResponse.backingStoreEnabled = true; },
-    "@odata.deltaLink": n => { baseDeltaFunctionResponse.odataDeltaLink = n.getStringValue(); },
-    "@odata.nextLink": n => { baseDeltaFunctionResponse.odataNextLink = n.getStringValue(); },
-  }
+    backingStoreEnabled: n => {
+      baseDeltaFunctionResponse.backingStoreEnabled = true;
+    },
+    "@odata.deltaLink": n => {
+      baseDeltaFunctionResponse.odataDeltaLink = n.getStringValue();
+    },
+    "@odata.nextLink": n => {
+      baseDeltaFunctionResponse.odataNextLink = n.getStringValue();
+    },
+  };
 }
 
 const getEmptyPageCollection = () => {
@@ -63,44 +73,73 @@ const adapter = new DummyRequestAdapter();
 describe("PageIterator tests", () => {
   describe("Constructor", () => {
     it("Should create instance", () => {
-      const pageIterator = new PageIterator(adapter, getPageCollection(), truthyCallback, createPageCollectionFromDiscriminatorValue);
+      const pageIterator = new PageIterator(
+        adapter,
+        getPageCollection(),
+        truthyCallback,
+        createPageCollectionFromDiscriminatorValue,
+      );
       assert(pageIterator instanceof PageIterator);
     });
   });
 
   describe("iterate", () => {
     it("Should iterate over a complete collection without nextLink", async () => {
-      const pageIterator = new PageIterator(adapter, getPageCollection(), truthyCallback, createPageCollectionFromDiscriminatorValue);
+      const pageIterator = new PageIterator(
+        adapter,
+        getPageCollection(),
+        truthyCallback,
+        createPageCollectionFromDiscriminatorValue,
+      );
       await pageIterator.iterate();
       assert.isTrue(pageIterator.isComplete());
     });
 
     it("Should not mutate the collection", async () => {
       const collection = getPageCollection();
-      const pageIterator = new PageIterator(adapter, getPageCollection(), truthyCallback, createPageCollectionFromDiscriminatorValue);
+      const pageIterator = new PageIterator(
+        adapter,
+        getPageCollection(),
+        truthyCallback,
+        createPageCollectionFromDiscriminatorValue,
+      );
       await pageIterator.iterate();
       assert.deepEqual(collection, getPageCollection());
     });
 
     it("Should not iterate over an empty collection", async () => {
-      const pageIterator = new PageIterator(adapter, getPageCollection(), truthyCallback, createPageCollectionFromDiscriminatorValue);
+      const pageIterator = new PageIterator(
+        adapter,
+        getPageCollection(),
+        truthyCallback,
+        createPageCollectionFromDiscriminatorValue,
+      );
       halfWayCallbackCounter = 1;
       await pageIterator.iterate();
       assert.equal(halfWayCallbackCounter, 1);
     });
 
     it("Should break in the middle way", async () => {
-      const pageIterator = new PageIterator(adapter, getPageCollection(), halfWayCallback, createPageCollectionFromDiscriminatorValue);
+      const pageIterator = new PageIterator(
+        adapter,
+        getPageCollection(),
+        halfWayCallback,
+        createPageCollectionFromDiscriminatorValue,
+      );
       halfWayCallbackCounter = 5;
       await pageIterator.iterate();
       assert.isFalse(pageIterator.isComplete());
     });
   });
 
-
   describe("resume", () => {
     it("Should start from the place where it left the iteration", async () => {
-      const pageIterator = new PageIterator(adapter, getPageCollection(), halfWayCallback, createPageCollectionFromDiscriminatorValue);
+      const pageIterator = new PageIterator(
+        adapter,
+        getPageCollection(),
+        halfWayCallback,
+        createPageCollectionFromDiscriminatorValue,
+      );
       halfWayCallbackCounter = 5;
       await pageIterator.iterate();
       assert.isFalse(pageIterator.isComplete());
@@ -111,14 +150,24 @@ describe("PageIterator tests", () => {
 
   describe("isComplete", () => {
     it("Should return false for incomplete iteration", async () => {
-      const pageIterator = new PageIterator(adapter, getPageCollection(), halfWayCallback, createPageCollectionFromDiscriminatorValue);
+      const pageIterator = new PageIterator(
+        adapter,
+        getPageCollection(),
+        halfWayCallback,
+        createPageCollectionFromDiscriminatorValue,
+      );
       halfWayCallbackCounter = 5;
       await pageIterator.iterate();
       assert.isFalse(pageIterator.isComplete());
     });
 
     it("Should return true for complete iteration", async () => {
-      const pageIterator = new PageIterator(adapter, getPageCollection(), halfWayCallback, createPageCollectionFromDiscriminatorValue);
+      const pageIterator = new PageIterator(
+        adapter,
+        getPageCollection(),
+        halfWayCallback,
+        createPageCollectionFromDiscriminatorValue,
+      );
       await pageIterator.iterate();
       assert.isTrue(pageIterator.isComplete());
     });

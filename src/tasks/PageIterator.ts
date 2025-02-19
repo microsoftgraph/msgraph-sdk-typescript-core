@@ -15,6 +15,7 @@ import { HttpMethod } from "@microsoft/kiota-abstractions/dist/es/src/httpMethod
 import type { ParsableFactory } from "@microsoft/kiota-abstractions/dist/es/src/serialization";
 import { ErrorMappings } from "@microsoft/kiota-abstractions/dist/es/src/requestAdapter";
 import { Headers } from "@microsoft/kiota-abstractions/dist/es/src/headers";
+import { createGraphErrorFromDiscriminatorValue } from "../content";
 
 /**
  * Signature representing PageCollection
@@ -108,12 +109,27 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
     errorMappings?: ErrorMappings,
   ) {
     this.requestAdapter = adapter;
-    this.currentPage = this.castPageCollection(pageResult);
+    const parsedValue = this.castPageCollection(pageResult);
+    if (
+      !parsedValue.value ||
+      !Array.isArray(parsedValue.value) ||
+      parsedValue.value.some(item => !(item instanceof T))
+    ) {
+      throw new Error("The current page does not have a property of type value or contains invalid items");
+    }
+    this.currentPage = parsedValue;
+
     this.cursor = 0;
     this.complete = false;
     this.errorMappings = errorMappings;
     this.parsableFactory = parsableFactory;
     this.callback = callback;
+
+    if (!this.errorMappings) {
+      this.errorMappings = {
+        XXX: parseNode => createGraphErrorFromDiscriminatorValue(parseNode),
+      };
+    }
 
     this.headers = new Headers();
     this.headers.set("Content-Type", new Set(["application/json"]));
@@ -154,9 +170,8 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
    * @async
    * Iterates over the collection and kicks callback for each item on iteration. Fetches next set of data through nextLink and iterates over again
    * This happens until the nextLink is drained out or the user responds with a red flag to continue from callback
-   * @returns A Promise that resolves to nothing on completion and throws error incase of any discrepancy.
    */
-  public async iterate(): Promise<any> {
+  public async iterate() {
     const keepIterating = true;
 
     while (keepIterating) {
@@ -208,9 +223,8 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
    * @async
    * To resume the iteration
    * Note: This internally calls the iterate method, It's just for more readability.
-   * @returns A Promise that resolves to nothing on completion and throws error incase of any discrepancy
    */
-  public async resume(): Promise<any> {
+  public async resume() {
     return this.iterate();
   }
 
