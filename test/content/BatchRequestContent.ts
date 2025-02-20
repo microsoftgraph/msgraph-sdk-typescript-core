@@ -73,7 +73,7 @@ describe("BatchRequestContent tests", () => {
   });
 
   describe("PostRequest", () => {
-    it("Should post a serialized batch of objects", () => {
+    it("Should post a serialized batch of objects to the adapter", () => {
       const requestContent = new BatchRequestContent(adapter);
 
       const requestInfo = new RequestInformation(HttpMethod.GET, "{+baseurl}/me");
@@ -82,10 +82,14 @@ describe("BatchRequestContent tests", () => {
       const requestInfo2 = new RequestInformation(HttpMethod.GET, "{+baseurl}/me/messages");
       requestContent.addBatchRequest(requestInfo2);
 
-      adapter.setResponse({ responses: { id: request.id, status: 200, body: { responses: [] } } });
+      adapter.setResponse({ responses: { id: request.id, status: 200 } });
 
       const result = requestContent.postAsync();
       assert.isNotNull(result);
+
+      const response = adapter.getRequests()[0];
+      assert.equal(response.httpMethod, HttpMethod.POST);
+      assert.equal(response.URL, "/$batch");
     });
   });
 
