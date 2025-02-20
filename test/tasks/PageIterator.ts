@@ -1,6 +1,6 @@
 import { assert, describe, it } from "vitest";
 import { PageCollection, PageIterator, PageIteratorCallback, PagingState } from "../../src";
-import { Headers, Parsable, ParseNode } from "@microsoft/kiota-abstractions";
+import { ErrorMappings, Headers, Parsable, ParseNode } from "@microsoft/kiota-abstractions";
 // @ts-ignore
 import { DummyRequestAdapter } from "../utils/DummyRequestAdapter";
 
@@ -68,6 +68,25 @@ const halfWayCallback: PageIteratorCallback<number> = data => {
   return halfWayCallbackCounter !== 0;
 };
 
+const errorMappings: ErrorMappings = {
+  XXX: parseNode => createGraphErrorFromDiscriminatorValue(parseNode),
+};
+
+export const createGraphErrorFromDiscriminatorValue = (
+  _parseNode: ParseNode | undefined,
+): ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) => {
+  return deserializeIntoGraphError;
+};
+
+/**
+ * Deserializes the batch item
+ * @param graphError
+ */
+export const deserializeIntoGraphError = (
+  graphError: Partial<Error> | undefined = {},
+): Record<string, (node: ParseNode) => void> => {
+  return {};
+};
 const adapter = new DummyRequestAdapter();
 
 describe("PageIterator tests", () => {
@@ -78,6 +97,7 @@ describe("PageIterator tests", () => {
         getPageCollection(),
         truthyCallback,
         createPageCollectionFromDiscriminatorValue,
+        errorMappings,
       );
       assert(pageIterator instanceof PageIterator);
     });
@@ -90,6 +110,7 @@ describe("PageIterator tests", () => {
         getPageCollection(),
         truthyCallback,
         createPageCollectionFromDiscriminatorValue,
+        errorMappings,
       );
       await pageIterator.iterate();
       assert.isTrue(pageIterator.isComplete());
@@ -102,6 +123,7 @@ describe("PageIterator tests", () => {
         getPageCollectionWithNext(),
         truthyCallback,
         createPageCollectionFromDiscriminatorValue,
+        errorMappings,
         {
           headers,
         },
@@ -118,6 +140,7 @@ describe("PageIterator tests", () => {
         getPageCollection(),
         truthyCallback,
         createPageCollectionFromDiscriminatorValue,
+        errorMappings,
       );
       await pageIterator.iterate();
       assert.deepEqual(collection, getPageCollection());
@@ -129,6 +152,7 @@ describe("PageIterator tests", () => {
         getPageCollection(),
         truthyCallback,
         createPageCollectionFromDiscriminatorValue,
+        errorMappings,
       );
       halfWayCallbackCounter = 1;
       await pageIterator.iterate();
@@ -141,6 +165,7 @@ describe("PageIterator tests", () => {
         getPageCollection(),
         halfWayCallback,
         createPageCollectionFromDiscriminatorValue,
+        errorMappings,
       );
       halfWayCallbackCounter = 5;
       await pageIterator.iterate();
@@ -155,6 +180,7 @@ describe("PageIterator tests", () => {
         getPageCollection(),
         halfWayCallback,
         createPageCollectionFromDiscriminatorValue,
+        errorMappings,
       );
       halfWayCallbackCounter = 5;
       await pageIterator.iterate();
@@ -171,6 +197,7 @@ describe("PageIterator tests", () => {
         getPageCollection(),
         halfWayCallback,
         createPageCollectionFromDiscriminatorValue,
+        errorMappings,
       );
       halfWayCallbackCounter = 5;
       await pageIterator.iterate();
@@ -184,6 +211,7 @@ describe("PageIterator tests", () => {
         getPageCollection(),
         truthyCallback,
         createPageCollectionFromDiscriminatorValue,
+        errorMappings,
       );
       await pageIterator.iterate();
       assert.isTrue(pageIterator.isComplete());

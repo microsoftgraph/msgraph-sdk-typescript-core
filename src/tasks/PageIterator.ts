@@ -109,7 +109,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
    * @private
    * Member holding the error mappings
    */
-  private readonly errorMappings?: ErrorMappings;
+  private readonly errorMappings: ErrorMappings;
 
   /*
    * @private
@@ -131,8 +131,8 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
    * @param requestAdapter - The request adapter
    * @param pageResult - The page collection result
    * @param callback - The callback function to be called on each item
-   * @param parsableFactory - The factory to create the parsable object
    * @param errorMappings - The error mappings
+   * @param parsableFactory - The factory to create the parsable object
    * @param options - The request options to configure the request
    */
   public constructor(
@@ -140,8 +140,8 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
     pageResult: C,
     callback: PageIteratorCallback<T>,
     parsableFactory: ParsableFactory<C>,
+    errorMappings: ErrorMappings,
     readonly options?: PagingRequestOptions,
-    errorMappings?: ErrorMappings | null,
   ) {
     if (!requestAdapter) {
       const error = new Error("Request adapter is undefined, Please provide a valid request adapter");
@@ -163,6 +163,11 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
       error.name = "Invalid Parsable Factory Error";
       throw error;
     }
+    if (!errorMappings) {
+      const error = new Error("Error mappings is undefined, Please provide a valid error mappings");
+      error.name = "Invalid Error Mappings Error";
+      throw error;
+    }
     this.requestAdapter = requestAdapter;
     const parsedValue = this.castPageCollection(pageResult);
     if (!parsedValue.value || !Array.isArray(parsedValue.value)) {
@@ -172,9 +177,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
 
     this.cursor = 0;
     this.complete = false;
-    if (errorMappings) {
-      this.errorMappings = errorMappings;
-    }
+    this.errorMappings = errorMappings;
     this.parsableFactory = parsableFactory;
     this.callback = callback;
 
