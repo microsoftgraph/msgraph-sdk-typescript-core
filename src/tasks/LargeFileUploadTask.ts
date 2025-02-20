@@ -9,9 +9,17 @@
  * @module LargeFileUploadTask
  **/
 
-import { Parsable, RequestAdapter } from "@microsoft/kiota-abstractions";
-import { UploadSliceRequestBuilder } from "./UploadSliceRequestBuilder";
-import { UploadResult } from "./UploadResult";
+import {
+  Parsable,
+  RequestAdapter,
+  RequestInformation,
+  ParsableFactory,
+  ParseNode,
+  ErrorMappings,
+} from "@microsoft/kiota-abstractions";
+import { UploadSlice } from "./UploadSlice";
+import { HttpMethod } from "@microsoft/kiota-abstractions/dist/es/src/httpMethod";
+import { createGraphErrorFromDiscriminatorValue } from "../content";
 
 /**
  * @interface
@@ -39,6 +47,51 @@ export interface UploadSession {
 }
 
 /**
+ * @interface
+ * Signature to represent the result of an upload
+ */
+export interface UploadResult<T> {
+  itemResponse?: T | null;
+  uploadSession?: UploadSession | null;
+  location?: string;
+}
+
+/**
+ * @interface
+ * Signature to represent the upload session response
+ */
+export interface UploadSessionResponse extends Parsable {
+  expirationDateTime?: Date | null;
+  nextExpectedRanges?: string[] | null;
+}
+/**
+ * BatchResponseCollection ParsableFactory
+ * @param _parseNode
+ */
+export const createUploadSessionResponseFromDiscriminatorValue = (
+  _parseNode: ParseNode | undefined,
+): ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) => {
+  return deserializeIntoUploadSessionResponse;
+};
+
+/**
+ * Deserializes the batch response body
+ * @param uploadSessionResponse
+ */
+export const deserializeIntoUploadSessionResponse = (
+  uploadSessionResponse: Partial<UploadSessionResponse> | undefined = {},
+): Record<string, (node: ParseNode) => void> => {
+  return {
+    expirationDateTime: n => {
+      uploadSessionResponse.expirationDateTime = n.getDateValue();
+    },
+    nextExpectedRanges: n => {
+      uploadSessionResponse.nextExpectedRanges = n.getCollectionOfPrimitiveValues();
+    },
+  };
+};
+
+/**
  * @constant
  * A default slice size for a large file
  */
@@ -56,6 +109,12 @@ export class LargeFileUploadTask<T extends Parsable> {
 
   /**
    * @private
+   * The error mappings
+   */
+  errorMappings: ErrorMappings;
+
+  /**
+   * @private
    * The upload session
    */
   Session: UploadSession;
@@ -65,19 +124,42 @@ export class LargeFileUploadTask<T extends Parsable> {
     readonly uploadStream: ReadableStream<Uint8Array>,
     readonly maxSliceSize = -1,
     readonly requestAdapter: RequestAdapter,
+    readonly parsableFactory: ParsableFactory<T>,
+    errorMappings?: ErrorMappings,
   ) {
+    if (!uploadSession) {
+      const error = new Error("Upload session is undefined, Please provide a valid upload session");
+      error.name = "Invalid Upload Session Error";
+      throw error;
+    }
+    if (!uploadStream) {
+      const error = new Error("Upload stream is undefined, Please provide a valid upload stream");
+      error.name = "Invalid Upload Stream Error";
+      throw error;
+    }
+    if (!requestAdapter) {
+      const error = new Error("Request adapter is undefined, Please provide a valid request adapter");
+      error.name = "Invalid Request Adapter Error";
+      throw error;
+    }
+    if (!parsableFactory) {
+      const error = new Error("Parsable factory is undefined, Please provide a valid parsable factory");
+      error.name = "Invalid Parsable Factory Error";
+      throw error;
+    }
     if (!uploadStream?.locked) {
       throw new Error("Please provide stream value");
-    }
-    if (requestAdapter === undefined) {
-      throw new Error("Request adapter is a required parameter");
     }
     if (maxSliceSize <= 0) {
       this.maxSliceSize = DefaultSliceSize;
     }
+    this.parsableFactory = parsableFactory;
 
     this.Session = this.extractSessionInfo(uploadSession);
     this.rangesRemaining = this.getRangesRemaining(this.Session);
+    this.errorMappings = errorMappings || {
+      XXX: parseNode => createGraphErrorFromDiscriminatorValue(parseNode),
+    };
   }
 
   /**
@@ -87,19 +169,26 @@ export class LargeFileUploadTask<T extends Parsable> {
    * @param maxTries
    * @constructor
    */
-  public async upload(progress?: IProgress, maxTries = 3): Promise<UploadResult<T>> {
+  public async upload(progress?: IProgress): Promise<UploadResult<T>> {
+    const sliceRequests = this.getUploadSliceRequests();
+    for (const request of sliceRequests) {
+      const uploadResult = await request.uploadSlice(this.uploadStream);
+      progress?.report(request.rangeEnd);
+      if (uploadResult?.itemResponse || uploadResult?.location) {
+        return uploadResult;
+      }
+    }
+    throw new Error("Upload failed");
+  }
+
+  private async uploadWithRetry(uploadSlice: UploadSlice<T>, maxTries = 3): Promise<UploadResult<T> | undefined> {
     let uploadTries = 0;
     while (uploadTries < maxTries) {
-      const sliceRequests = this.getUploadSliceRequests();
-      for (const request of sliceRequests) {
-        const uploadResult = await request.UploadSlice(this.uploadStream);
-        progress?.report(request.rangeEnd);
-        if (uploadResult?.UploadSucceeded()) {
-          return uploadResult;
-        }
+      try {
+        return await uploadSlice.uploadSlice(this.uploadStream);
+      } catch (e) {
+        console.error(e);
       }
-
-      await this.UpdateSession();
       uploadTries++;
 
       if (uploadTries < maxTries) {
@@ -114,27 +203,31 @@ export class LargeFileUploadTask<T extends Parsable> {
   /**
    * @public
    * Resumes the current upload session
-   * @param _
-   * @constructor
+   * @param progress
    */
-  public resume(_?: IProgress): Promise<UploadResult<T>> {
-    throw new Error("Method not implemented.");
+  public async resume(progress?: IProgress): Promise<UploadResult<T>> {
+    await this.refreshUploadStatus();
+    return this.upload(progress);
   }
 
-  public RefreshUploadStatus(): Promise<void> {
-    throw new Error("Method not implemented.");
+  public async refreshUploadStatus() {
+    const requestInformation = new RequestInformation(HttpMethod.GET, this.Session.uploadUrl!);
+    const response = await this.requestAdapter.send<UploadSessionResponse>(
+      requestInformation,
+      createUploadSessionResponseFromDiscriminatorValue,
+      this.errorMappings,
+    );
+
+    if (response) {
+      this.Session.expirationDateTime = response?.expirationDateTime;
+      this.Session.nextExpectedRanges = response.nextExpectedRanges;
+      this.rangesRemaining = this.getRangesRemaining(this.Session);
+    }
   }
 
-  public UpdateSession(): Promise<UploadSession> {
-    throw new Error("Method not implemented.");
-  }
-
-  public DeleteSession(): Promise<UploadSession> {
-    throw new Error("Method not implemented.");
-  }
-
-  public Cancel(): Promise<void> {
-    throw new Error("Method not implemented.");
+  public async cancel(): Promise<void> {
+    const requestInformation = new RequestInformation(HttpMethod.PUT, this.Session.uploadUrl!);
+    await this.requestAdapter.sendNoResponseContent(requestInformation, this.errorMappings);
   }
 
   private extractSessionInfo(parsable: Parsable): UploadSession {
@@ -158,20 +251,21 @@ export class LargeFileUploadTask<T extends Parsable> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  private getUploadSliceRequests(): UploadSliceRequestBuilder<T>[] {
-    const uploadSlices: UploadSliceRequestBuilder<T>[] = [];
+  private getUploadSliceRequests(): UploadSlice<T>[] {
+    const uploadSlices: UploadSlice<T>[] = [];
     const rangesRemaining = this.rangesRemaining;
     const session = this.Session;
     rangesRemaining.forEach(range => {
       let currentRangeBegin = range[0];
       while (currentRangeBegin <= range[1]) {
         const nextSliceSize = this.nextSliceSize(currentRangeBegin, range[1]);
-        const uploadRequest = new UploadSliceRequestBuilder<T>(
+        const uploadRequest = new UploadSlice<T>(
           this.requestAdapter,
           session.uploadUrl!,
           currentRangeBegin,
           currentRangeBegin + nextSliceSize - 1,
           range[1] + 1,
+          this.parsableFactory,
         );
         uploadSlices.push(uploadRequest);
         currentRangeBegin += nextSliceSize;
