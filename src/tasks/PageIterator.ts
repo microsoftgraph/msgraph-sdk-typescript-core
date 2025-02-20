@@ -19,7 +19,6 @@ import {
   ErrorMappings,
   Headers,
 } from "@microsoft/kiota-abstractions";
-import { createGraphErrorFromDiscriminatorValue } from "../content";
 
 /**
  * Signature representing PageCollection
@@ -178,12 +177,6 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
     }
     this.parsableFactory = parsableFactory;
     this.callback = callback;
-
-    if (!this.errorMappings) {
-      this.errorMappings = {
-        XXX: parseNode => createGraphErrorFromDiscriminatorValue(parseNode),
-      };
-    }
 
     this.headers = new Headers();
     this.headers.set("Content-Type", new Set(["application/json"]));
