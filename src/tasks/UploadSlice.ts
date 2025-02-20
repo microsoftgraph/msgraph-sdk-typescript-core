@@ -15,7 +15,6 @@ import {
   RequestInformation,
 } from "@microsoft/kiota-abstractions";
 import { HeadersInspectionOptions } from "@microsoft/kiota-http-fetchlibrary";
-import { createGraphErrorFromDiscriminatorValue } from "../content";
 import { UploadResult, UploadSession } from "./LargeFileUploadTask";
 
 const binaryContentType = "application/octet-stream";
@@ -32,6 +31,7 @@ export class UploadSlice<T extends Parsable> {
     readonly rangeEnd: number,
     readonly totalSessionLength: number,
     readonly parsableFactory: ParsableFactory<T>,
+    readonly errorMappings: ErrorMappings,
   ) {}
 
   public async uploadSlice(stream: ReadableStream<Uint8Array>): Promise<UploadResult<T> | undefined> {
@@ -46,11 +46,11 @@ export class UploadSlice<T extends Parsable> {
     const headerOptions = new HeadersInspectionOptions({ inspectResponseHeaders: true });
     requestInformation.addRequestOptions([headerOptions]);
 
-    const errorMappings: ErrorMappings = {
-      XXX: parseNode => createGraphErrorFromDiscriminatorValue(parseNode),
-    };
-
-    const itemResponse = await this.requestAdapter.send<T>(requestInformation, this.parsableFactory, errorMappings);
+    const itemResponse = await this.requestAdapter.send<T>(
+      requestInformation,
+      this.parsableFactory,
+      this.errorMappings,
+    );
 
     const locations = headerOptions.getResponseHeaders().get("location");
 

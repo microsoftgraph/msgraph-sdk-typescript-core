@@ -19,7 +19,6 @@ import {
 } from "@microsoft/kiota-abstractions";
 import { UploadSlice } from "./UploadSlice";
 import { HttpMethod } from "@microsoft/kiota-abstractions/dist/es/src/httpMethod";
-import { createGraphErrorFromDiscriminatorValue } from "../content";
 
 /**
  * @interface
@@ -119,13 +118,25 @@ export class LargeFileUploadTask<T extends Parsable> {
    */
   Session: UploadSession;
 
+  /**
+   * Constructs a new instance of the LargeFileUploadTask class.
+   *
+   * @param {RequestAdapter} requestAdapter - The request adapter to use for making HTTP requests.
+   * @param {Parsable} uploadSession - The upload session information.
+   * @param {ReadableStream<Uint8Array>} uploadStream - The stream of the file to be uploaded.
+   * @param {number} [maxSliceSize=-1] - The maximum size of each file slice to be uploaded.
+   * @param {ParsableFactory<T>} parsableFactory - The factory to create parsable objects.
+   * @param {ErrorMappings} [errorMappings] - error mappings.
+   *
+   * @throws {Error} If any of the required parameters are undefined or invalid.
+   */
   constructor(
+    readonly requestAdapter: RequestAdapter,
     readonly uploadSession: Parsable,
     readonly uploadStream: ReadableStream<Uint8Array>,
     readonly maxSliceSize = -1,
-    readonly requestAdapter: RequestAdapter,
     readonly parsableFactory: ParsableFactory<T>,
-    errorMappings?: ErrorMappings,
+    errorMappings: ErrorMappings,
   ) {
     if (!uploadSession) {
       const error = new Error("Upload session is undefined, Please provide a valid upload session");
@@ -147,7 +158,7 @@ export class LargeFileUploadTask<T extends Parsable> {
       error.name = "Invalid Parsable Factory Error";
       throw error;
     }
-    if (!uploadStream?.locked) {
+    if (uploadStream?.locked) {
       throw new Error("Please provide stream value");
     }
     if (maxSliceSize <= 0) {
@@ -157,17 +168,15 @@ export class LargeFileUploadTask<T extends Parsable> {
 
     this.Session = this.extractSessionInfo(uploadSession);
     this.rangesRemaining = this.getRangesRemaining(this.Session);
-    this.errorMappings = errorMappings || {
-      XXX: parseNode => createGraphErrorFromDiscriminatorValue(parseNode),
-    };
+    this.errorMappings = errorMappings;
   }
 
   /**
-   * @public
-   * Uploads file in a sequential order by slicing the file in terms of ranges
-   * @param progress
-   * @param maxTries
-   * @constructor
+   * Uploads the file in a sequential order by slicing the file in terms of ranges.
+   *
+   * @param {IProgress} [progress] - Optional progress receiver to report upload progress.
+   * @returns {Promise<UploadResult<T>>} - The result of the upload.
+   * @throws {Error} If the upload fails.
    */
   public async upload(progress?: IProgress): Promise<UploadResult<T>> {
     const sliceRequests = this.getUploadSliceRequests();
@@ -181,6 +190,14 @@ export class LargeFileUploadTask<T extends Parsable> {
     throw new Error("Upload failed");
   }
 
+  /**
+   * Uploads a slice with retry logic.
+   *
+   * @param {UploadSlice<T>} uploadSlice - The upload slice to be uploaded.
+   * @param {number} [maxTries=3] - The maximum number of retry attempts.
+   * @returns {Promise<UploadResult<T> | undefined>} - The result of the upload.
+   * @throws {Error} If the maximum number of retries is reached.
+   */
   private async uploadWithRetry(uploadSlice: UploadSlice<T>, maxTries = 3): Promise<UploadResult<T> | undefined> {
     let uploadTries = 0;
     while (uploadTries < maxTries) {
@@ -210,6 +227,12 @@ export class LargeFileUploadTask<T extends Parsable> {
     return this.upload(progress);
   }
 
+  /**
+   * Refreshes the current upload session status by making a GET request to the upload URL.
+   * Updates the session expiration date, next expected ranges, and remaining ranges based on the response.
+   *
+   * @throws {Error} If the request fails.
+   */
   public async refreshUploadStatus() {
     const requestInformation = new RequestInformation(HttpMethod.GET, this.Session.uploadUrl!);
     const response = await this.requestAdapter.send<UploadSessionResponse>(
@@ -225,32 +248,52 @@ export class LargeFileUploadTask<T extends Parsable> {
     }
   }
 
+  /**
+   * Cancels the current upload session.
+   * Sends a PUT request to the upload URL to cancel the session.
+   *
+   * @returns {Promise<void>} A promise that resolves when the session is canceled.
+   */
   public async cancel(): Promise<void> {
     const requestInformation = new RequestInformation(HttpMethod.PUT, this.Session.uploadUrl!);
     await this.requestAdapter.sendNoResponseContent(requestInformation, this.errorMappings);
   }
 
+  /**
+   * Extracts the upload session information from a parsable object.
+   *
+   * @param {Parsable} parsable - The parsable object containing the upload session information.
+   * @returns {UploadSession} - The extracted upload session information.
+   */
   private extractSessionInfo(parsable: Parsable): UploadSession {
-    const uploadSession: UploadSession = {
-      expirationDateTime: null,
-      nextExpectedRanges: null,
-      odataType: null,
-      uploadUrl: null,
+    const { expirationDateTime, nextExpectedRanges, odataType, uploadUrl } = parsable as Partial<UploadSession>;
+    if (!nextExpectedRanges || !uploadUrl || nextExpectedRanges.length === 0) {
+      throw new Error("Upload session is invalid");
+    }
+    return {
+      expirationDateTime: expirationDateTime ?? null,
+      nextExpectedRanges: nextExpectedRanges ?? null,
+      odataType: odataType ?? null,
+      uploadUrl: uploadUrl ?? null,
     };
-
-    if ("expirationDateTime" in parsable) uploadSession.expirationDateTime = parsable.expirationDateTime as Date | null;
-    if ("nextExpectedRanges" in parsable)
-      uploadSession.nextExpectedRanges = parsable.nextExpectedRanges as string[] | null;
-    if ("odataType" in parsable) uploadSession.odataType = parsable.odataType as string | null;
-    if ("uploadUrl" in parsable) uploadSession.uploadUrl = parsable.uploadUrl as string | null;
-
-    return uploadSession;
   }
 
+  /**
+   * Pauses execution for a specified number of milliseconds.
+   *
+   * @param {number} ms - The number of milliseconds to sleep.
+   * @returns {Promise<void>} A promise that resolves after the specified time.
+   */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  /**
+   * Generates a list of upload slice requests based on the remaining ranges to be uploaded.
+   *
+   * @private
+   * @returns {UploadSlice<T>[]} An array of UploadSlice objects representing the upload requests.
+   */
   private getUploadSliceRequests(): UploadSlice<T>[] {
     const uploadSlices: UploadSlice<T>[] = [];
     const rangesRemaining = this.rangesRemaining;
@@ -266,6 +309,7 @@ export class LargeFileUploadTask<T extends Parsable> {
           currentRangeBegin + nextSliceSize - 1,
           range[1] + 1,
           this.parsableFactory,
+          this.errorMappings,
         );
         uploadSlices.push(uploadRequest);
         currentRangeBegin += nextSliceSize;
@@ -274,6 +318,13 @@ export class LargeFileUploadTask<T extends Parsable> {
     return uploadSlices;
   }
 
+  /**
+   * Calculates the size of the next slice to be uploaded.
+   *
+   * @param {number} currentRangeBegin - The beginning of the current range.
+   * @param {number} currentRangeEnd - The end of the current range.
+   * @returns {number} - The size of the next slice.
+   */
   private nextSliceSize(currentRangeBegin: number, currentRangeEnd: number): number {
     const sizeBasedOnRange = currentRangeEnd - currentRangeBegin + 1;
     return sizeBasedOnRange > this.maxSliceSize ? this.maxSliceSize : sizeBasedOnRange;
