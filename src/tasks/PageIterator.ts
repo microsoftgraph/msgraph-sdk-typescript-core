@@ -95,20 +95,40 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
    * @constructor
    * Creates new instance for PageIterator
    * @returns An instance of a PageIterator
-   * @param adapter - The request adapter
+   * @param requestAdapter - The request adapter
    * @param pageResult - The page collection result
    * @param callback - The callback function to be called on each item
    * @param parsableFactory - The factory to create the parsable object
    * @param errorMappings - The error mappings
    */
   public constructor(
-    adapter: RequestAdapter,
+    requestAdapter: RequestAdapter,
     pageResult: C,
     callback: PageIteratorCallback<T>,
     parsableFactory: ParsableFactory<C>,
     errorMappings?: ErrorMappings,
   ) {
-    this.requestAdapter = adapter;
+    if (!requestAdapter) {
+      const error = new Error("Request adapter is undefined, Please provide a valid request adapter");
+      error.name = "Invalid Request Adapter Error";
+      throw error;
+    }
+    if (!pageResult) {
+      const error = new Error("Page result is undefined, Please provide a valid page result");
+      error.name = "Invalid Page Result Error";
+      throw error;
+    }
+    if (!callback) {
+      const error = new Error("Callback is undefined, Please provide a valid callback");
+      error.name = "Invalid Callback Error";
+      throw error;
+    }
+    if (!parsableFactory) {
+      const error = new Error("Parsable factory is undefined, Please provide a valid parsable factory");
+      error.name = "Invalid Parsable Factory Error";
+      throw error;
+    }
+    this.requestAdapter = requestAdapter;
     const parsedValue = this.castPageCollection(pageResult);
     if (!parsedValue.value || !Array.isArray(parsedValue.value)) {
       throw new Error("The current page does not have a property of type value or contains invalid items");
