@@ -51,6 +51,11 @@ export class BatchRequestContent {
 
   constructor(requestAdapter: RequestAdapter) {
     this.requests = new Map<string, BatchItem>();
+    if (!requestAdapter) {
+      const error = new Error("Request adapter is undefined, Please provide a valid request adapter");
+      error.name = "Invalid Request Adapter Error";
+      throw error;
+    }
     this.requestAdapter = requestAdapter;
   }
 

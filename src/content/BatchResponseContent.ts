@@ -9,16 +9,7 @@
  * @module BatchResponseContent
  */
 
-import { UntypedBatchResponse, BatchResponseCollection, BatchResponse } from "./BatchItem";
-import {
-  UntypedNode,
-  isUntypedString,
-  isUntypedBoolean,
-  isUntypedNull,
-  isUntypedNumber,
-  isUntypedArray,
-  isUntypedObject,
-} from "@microsoft/kiota-abstractions";
+import { BatchResponseCollection, BatchResponse } from "./BatchItem";
 
 /**
  * @class
@@ -51,50 +42,8 @@ export class BatchResponseContent {
   public update(response: BatchResponseCollection): void {
     const responses = response.responses;
     for (let i = 0, l = responses.length; i < l; i++) {
-      this.responses.set(responses[i].id, this.convertFromBatchItem(responses[i]));
+      this.responses.set(responses[i].id, responses[i]);
     }
-  }
-
-  /**
-   * @private
-   * Converts the untyped batch item to typed batch response
-   * @param batchItem
-   */
-  private convertFromBatchItem(batchItem: UntypedBatchResponse): BatchResponse {
-    return {
-      id: batchItem.id,
-      headers: this.getUntypedNodeValue(batchItem.headers) as Record<string, string> | null,
-      body: this.getUntypedNodeValue(batchItem.body) as Record<string, unknown> | null,
-      status: batchItem.status,
-    };
-  }
-
-  /**
-   * @private
-   * Unwraps the untyped node value
-   * @param untypedValue
-   */
-  private getUntypedNodeValue(untypedValue: UntypedNode | null | undefined): unknown {
-    if (!untypedValue) {
-      return null;
-    }
-    if (
-      isUntypedString(untypedValue) ||
-      isUntypedBoolean(untypedValue) ||
-      isUntypedNull(untypedValue) ||
-      isUntypedNumber(untypedValue)
-    ) {
-      return untypedValue.getValue();
-    } else if (isUntypedArray(untypedValue)) {
-      return untypedValue.getValue().map((item: UntypedNode) => this.getUntypedNodeValue(item));
-    } else if (isUntypedObject(untypedValue)) {
-      const result: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(untypedValue.getValue())) {
-        result[key] = this.getUntypedNodeValue(value);
-      }
-      return result;
-    }
-    throw new Error("Unsupported untyped node type");
   }
 
   /**

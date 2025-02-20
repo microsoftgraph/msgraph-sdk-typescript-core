@@ -19,6 +19,12 @@ import {
   SerializationWriter,
   UntypedNode,
   createUntypedNodeFromDiscriminatorValue,
+  isUntypedString,
+  isUntypedBoolean,
+  isUntypedNull,
+  isUntypedNumber,
+  isUntypedArray,
+  isUntypedObject,
 } from "@microsoft/kiota-abstractions";
 
 /**
@@ -32,17 +38,6 @@ export interface BatchItem {
   headers?: Record<string, string> | null;
   body?: Record<string, any> | null;
   dependsOn?: string[];
-}
-
-/**
- * @interface
- * Signature represents payload structure for batch response
- */
-export interface UntypedBatchResponse {
-  id: string;
-  headers?: UntypedNode | null;
-  body?: UntypedNode | null;
-  status?: number;
 }
 
 /**
@@ -69,7 +64,7 @@ export interface BatchRequestCollection {
  * Signature representing Batch response body
  */
 export interface BatchResponseCollection {
-  responses: UntypedBatchResponse[];
+  responses: BatchResponse[];
 }
 
 /**
@@ -152,20 +147,50 @@ export const createBatchResponseFromDiscriminatorValue = (
  * @param batchResponse
  */
 export const deserializeIntoBatchResponse = (
-  batchResponse: Partial<UntypedBatchResponse> | undefined = {},
+  batchResponse: Partial<BatchResponse> | undefined = {},
 ): Record<string, (node: ParseNode) => void> => {
   return {
     id: n => {
       batchResponse.id = n.getStringValue();
     },
     headers: n => {
-      batchResponse.headers = n.getObjectValue<UntypedNode>(createUntypedNodeFromDiscriminatorValue);
+      const headers: UntypedNode = n.getObjectValue<UntypedNode>(createUntypedNodeFromDiscriminatorValue);
+      batchResponse.headers = getUntypedNodeValue(headers) as Record<string, string> | null;
     },
     body: n => {
-      batchResponse.body = n.getObjectValue<UntypedNode>(createUntypedNodeFromDiscriminatorValue);
+      const body: UntypedNode = n.getObjectValue<UntypedNode>(createUntypedNodeFromDiscriminatorValue);
+      batchResponse.body = getUntypedNodeValue(body) as Record<string, unknown> | null;
     },
     status: n => {
       batchResponse.status = n.getNumberValue();
     },
   };
+};
+
+/**
+ * @private
+ * Unwraps the untyped node value
+ * @param untypedValue
+ */
+const getUntypedNodeValue = (untypedValue: UntypedNode | null | undefined): unknown => {
+  if (!untypedValue) {
+    return null;
+  }
+  if (
+    isUntypedString(untypedValue) ||
+    isUntypedBoolean(untypedValue) ||
+    isUntypedNull(untypedValue) ||
+    isUntypedNumber(untypedValue)
+  ) {
+    return untypedValue.getValue();
+  } else if (isUntypedArray(untypedValue)) {
+    return untypedValue.getValue().map((item: UntypedNode) => getUntypedNodeValue(item));
+  } else if (isUntypedObject(untypedValue)) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(untypedValue.getValue())) {
+      result[key] = getUntypedNodeValue(value);
+    }
+    return result;
+  }
+  throw new Error("Unsupported untyped node type");
 };

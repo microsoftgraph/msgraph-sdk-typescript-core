@@ -13,18 +13,13 @@
  * @interface
  * Signature represents key value pair object
  */
-import {
-  createUntypedNodeFromDiscriminatorValue,
-  Parsable,
-  ParseNode,
-  UntypedNode,
-} from "@microsoft/kiota-abstractions";
+import { Parsable, ParseNode, AdditionalDataHolder, BackedModel, ApiError } from "@microsoft/kiota-abstractions";
 
 /**
  * @interface
  * Signature represents the structure of an error response
  */
-export interface GraphError {
+export interface GraphError extends ApiError, AdditionalDataHolder, BackedModel {
   /**
    * Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
    */
@@ -33,10 +28,6 @@ export interface GraphError {
    * Stores model information.
    */
   backingStoreEnabled?: boolean | null;
-  /**
-   * The error property
-   */
-  error?: UntypedNode | null;
 }
 
 /**
@@ -59,9 +50,6 @@ export const deserializeIntoGraphError = (
   return {
     backingStoreEnabled: _n => {
       graphError.backingStoreEnabled = true;
-    },
-    error: n => {
-      graphError.error = n.getObjectValue<UntypedNode>(createUntypedNodeFromDiscriminatorValue);
     },
   };
 };
