@@ -49,7 +49,14 @@ export class BatchRequestContent {
    */
   private readonly requestAdapter: RequestAdapter;
 
-  constructor(requestAdapter: RequestAdapter) {
+  /**
+   * @private
+   * @static
+   * Error mappings to be used while deserializing the response
+   */
+  private readonly errorMappings: ErrorMappings | undefined;
+
+  constructor(requestAdapter: RequestAdapter, errorMappings?: ErrorMappings) {
     this.requests = new Map<string, BatchItem>();
     if (!requestAdapter) {
       const error = new Error("Request adapter is undefined, Please provide a valid request adapter");
@@ -57,6 +64,7 @@ export class BatchRequestContent {
       throw error;
     }
     this.requestAdapter = requestAdapter;
+    this.errorMappings = errorMappings;
   }
 
   /**
@@ -259,9 +267,8 @@ export class BatchRequestContent {
    * @public
    * @async
    * Executes the batch request
-   * @param errorMappings - The error mappings to be used while deserializing the response
    */
-  public async postAsync(errorMappings?: ErrorMappings): Promise<BatchResponseContent | undefined> {
+  public async postAsync(): Promise<BatchResponseContent | undefined> {
     const requestInformation = new RequestInformation();
     requestInformation.httpMethod = HttpMethod.POST;
     requestInformation.urlTemplate = "{+baseurl}/$batch";
@@ -276,11 +283,9 @@ export class BatchRequestContent {
 
     requestInformation.headers.add("Content-Type", "application/json");
 
-    if (!errorMappings) {
-      errorMappings = {
-        XXX: parseNode => createGraphErrorFromDiscriminatorValue(parseNode),
-      };
-    }
+    const errorMappings = this.errorMappings ?? {
+      XXX: parseNode => createGraphErrorFromDiscriminatorValue(parseNode),
+    };
 
     const result = await this.requestAdapter.send<BatchResponseCollection>(
       requestInformation,
