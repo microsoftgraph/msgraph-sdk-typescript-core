@@ -161,7 +161,7 @@ export class BatchRequestContent {
   /**
    * @public
    * Adds a request to the batch request content
-   * @param {BatchRequestStep} request - The request value
+   * @param {BatchItem} request - The request value
    * @returns The id of the added request
    */
   private addRequest(request: BatchItem): string {
@@ -188,10 +188,11 @@ export class BatchRequestContent {
   /**
    * @public
    * Receives a request information object, converts it and adds it to the batch request execution chain
-   * @param requestInformation
+   * @param requestInformation - The request information object
+   * @param batchId - The batch id to be used for the request
    */
-  public addBatchRequest(requestInformation: RequestInformation): BatchItem {
-    const batchItem = this.toBatchItem(requestInformation);
+  public addBatchRequest(requestInformation: RequestInformation, batchId?: string): BatchItem {
+    const batchItem = this.toBatchItem(requestInformation, batchId);
     this.addRequest(batchItem);
     return batchItem;
   }
@@ -200,8 +201,9 @@ export class BatchRequestContent {
    * @private
    * Converts the request information object to a batch item
    * @param requestInformation - The request information object
+   * @param batchId - The batch id to be used for the request
    */
-  private toBatchItem(requestInformation: RequestInformation): BatchItem {
+  private toBatchItem(requestInformation: RequestInformation, batchId?: string): BatchItem {
     if (requestInformation.pathParameters && requestInformation.pathParameters.baseurl === undefined) {
       requestInformation.pathParameters.baseurl = this.requestAdapter.baseUrl;
     }
@@ -228,7 +230,7 @@ export class BatchRequestContent {
     const method = requestInformation.httpMethod?.toString();
 
     return {
-      id: createGuid(),
+      id: batchId ?? createGuid(),
       method: method!,
       url,
       headers,

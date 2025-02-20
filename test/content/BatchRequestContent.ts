@@ -93,8 +93,8 @@ describe("BatchRequestContent tests", () => {
     it("Can fetch a response by Id", () => {
       const requestContent = new BatchResponseContent({
         responses: [
-          { id: "1", method: "GET", url: "http://localhost", status: 200 },
-          { id: "2", method: "POST", url: "http://localhost", status: 204 },
+          { id: "1", status: 200, headers: {} },
+          { id: "2", status: 204, headers: {} },
         ],
       });
 
