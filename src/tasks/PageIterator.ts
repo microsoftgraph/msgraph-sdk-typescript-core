@@ -9,12 +9,16 @@
  * @module PageIterator
  */
 
-import { Parsable, RequestAdapter } from "@microsoft/kiota-abstractions";
-import { RequestInformation } from "@microsoft/kiota-abstractions/dist/es/src/requestInformation";
-import { HttpMethod } from "@microsoft/kiota-abstractions/dist/es/src/httpMethod";
-import type { ParsableFactory } from "@microsoft/kiota-abstractions/dist/es/src/serialization";
-import { ErrorMappings } from "@microsoft/kiota-abstractions/dist/es/src/requestAdapter";
-import { Headers } from "@microsoft/kiota-abstractions/dist/es/src/headers";
+import {
+  Parsable,
+  RequestAdapter,
+  RequestOption,
+  RequestInformation,
+  HttpMethod,
+  ParsableFactory,
+  ErrorMappings,
+  Headers,
+} from "@microsoft/kiota-abstractions";
 import { createGraphErrorFromDiscriminatorValue } from "../content";
 
 /**
@@ -36,6 +40,30 @@ export interface PageCollection<T> {
  * @property {Function} callback - The callback function which should return boolean to continue the continue/stop the iteration.
  */
 export type PageIteratorCallback<T> = (data: T) => boolean;
+
+/**
+ * Signature to define the request options to be sent during request.
+ * The values of the GraphRequestOptions properties are passed to the Graph Request object.
+ * @property {Headers} headers - the header options for the request
+ * @property {RequestOption[]} options - The middleware options for the request
+ */
+export interface PagingRequestOptions {
+  headers?: Headers;
+  requestOption?: RequestOption[];
+}
+
+/**
+ * @enum
+ * Enum representing the state of the iterator
+ */
+export enum PagingState {
+  NotStarted,
+  Paused,
+  IntrapageIteration,
+  InterpageIteration,
+  Delta,
+  Complete,
+}
 
 /**
  * @class
@@ -91,6 +119,12 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
   private readonly callback: PageIteratorCallback<T>;
 
   /**
+   * @private
+   * Member holding the state of the iterator
+   */
+  private pagingState: PagingState;
+
+  /**
    * @public
    * @constructor
    * Creates new instance for PageIterator
@@ -100,13 +134,15 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
    * @param callback - The callback function to be called on each item
    * @param parsableFactory - The factory to create the parsable object
    * @param errorMappings - The error mappings
+   * @param options - The request options to configure the request
    */
   public constructor(
     requestAdapter: RequestAdapter,
     pageResult: C,
     callback: PageIteratorCallback<T>,
     parsableFactory: ParsableFactory<C>,
-    errorMappings?: ErrorMappings,
+    readonly options?: PagingRequestOptions,
+    errorMappings?: ErrorMappings | null,
   ) {
     if (!requestAdapter) {
       const error = new Error("Request adapter is undefined, Please provide a valid request adapter");
@@ -137,7 +173,9 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
 
     this.cursor = 0;
     this.complete = false;
-    this.errorMappings = errorMappings;
+    if (errorMappings) {
+      this.errorMappings = errorMappings;
+    }
     this.parsableFactory = parsableFactory;
     this.callback = callback;
 
@@ -149,6 +187,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
 
     this.headers = new Headers();
     this.headers.set("Content-Type", new Set(["application/json"]));
+    this.pagingState = PagingState.NotStarted;
   }
 
   private castPageCollection(pageResult: C): PageCollection<T> {
@@ -197,10 +236,17 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
       }
 
       const nextLink = this.getOdataNextLink();
-      if ((nextLink !== undefined || nextLink !== "") && this.cursor >= (this.currentPage?.value.length ?? 0)) {
+      if (
+        (nextLink === undefined || nextLink === null || nextLink === "") &&
+        this.cursor >= (this.currentPage?.value.length ?? 0)
+      ) {
         this.complete = true;
+        this.pagingState = PagingState.Complete;
         return;
       }
+
+      // waiting for delta page
+      this.pagingState = PagingState.Delta;
 
       const nextPage = await this.next();
       if (!nextPage) {
@@ -211,16 +257,33 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
   }
 
   /**
+   * @public
+   * Getter to get the state of the iterator
+   */
+  public getPagingState(): PagingState {
+    return this.pagingState;
+  }
+
+  /**
    * @private
    * @async
    * Helper to make a get request to fetch next page with nextLink url and update the page iterator instance with the returned response
    * @returns A promise that resolves to a response data with next page collection
    */
   public async next(): Promise<PageCollection<T> | undefined> {
+    this.pagingState = PagingState.InterpageIteration;
     const requestInformation = new RequestInformation();
     requestInformation.httpMethod = HttpMethod.GET;
     requestInformation.urlTemplate = this.getOdataNextLink();
     requestInformation.headers.addAll(this.headers);
+    if (this.options) {
+      if (this.options.headers) {
+        requestInformation.headers.addAll(this.options.headers);
+      }
+      if (this.options.requestOption) {
+        requestInformation.addRequestOptions(this.options.requestOption);
+      }
+    }
 
     const graphRequest = await this.requestAdapter.send<C>(
       requestInformation,
@@ -259,6 +322,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
    * @returns A boolean indicating the continue flag to process next page
    */
   private enumerate() {
+    this.pagingState = PagingState.IntrapageIteration;
     let keepIterating = true;
 
     const pageItems = this.currentPage?.value;
@@ -271,6 +335,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
       keepIterating = this.callback(pageItems[i]);
       this.cursor = i + 1;
       if (!keepIterating) {
+        this.pagingState = PagingState.Paused;
         break;
       }
     }

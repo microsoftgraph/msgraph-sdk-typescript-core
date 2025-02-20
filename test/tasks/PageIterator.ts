@@ -1,6 +1,6 @@
 import { assert, describe, it } from "vitest";
-import { PageCollection, PageIterator, PageIteratorCallback } from "../../src";
-import { Parsable, ParseNode } from "@microsoft/kiota-abstractions";
+import { PageCollection, PageIterator, PageIteratorCallback, PagingState } from "../../src";
+import { Headers, Parsable, ParseNode } from "@microsoft/kiota-abstractions";
 // @ts-ignore
 import { DummyRequestAdapter } from "../utils/DummyRequestAdapter";
 
@@ -94,6 +94,22 @@ describe("PageIterator tests", () => {
       await pageIterator.iterate();
       assert.isTrue(pageIterator.isComplete());
     });
+    it("Should execute post with passed headers", async () => {
+      const headers = new Headers();
+      headers.add("Test", "Value");
+      const pageIterator = new PageIterator(
+        adapter,
+        getPageCollectionWithNext(),
+        truthyCallback,
+        createPageCollectionFromDiscriminatorValue,
+        {
+          headers,
+        },
+      );
+      await pageIterator.iterate();
+      const requests = adapter.getRequests()[0];
+      assert.isTrue(requests.headers.has("Test"));
+    });
 
     it("Should not mutate the collection", async () => {
       const collection = getPageCollection();
@@ -159,17 +175,19 @@ describe("PageIterator tests", () => {
       halfWayCallbackCounter = 5;
       await pageIterator.iterate();
       assert.isFalse(pageIterator.isComplete());
+      assert.equal(pageIterator.getPagingState(), PagingState.Paused);
     });
 
     it("Should return true for complete iteration", async () => {
       const pageIterator = new PageIterator(
         adapter,
         getPageCollection(),
-        halfWayCallback,
+        truthyCallback,
         createPageCollectionFromDiscriminatorValue,
       );
       await pageIterator.iterate();
       assert.isTrue(pageIterator.isComplete());
+      assert.equal(pageIterator.getPagingState(), PagingState.Complete);
     });
   });
 });
