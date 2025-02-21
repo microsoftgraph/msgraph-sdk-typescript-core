@@ -242,7 +242,7 @@ export class PageIterator<T extends Parsable> {
       if (!nextPage) {
         return;
       }
-      if (!nextPage.odataNextLink) {
+      if (!nextPage.odataNextLink && nextPage.odataDeltaLink) {
         this.pagingState = "Delta";
       }
       this.currentPage = nextPage;
@@ -309,13 +309,13 @@ export class PageIterator<T extends Parsable> {
    * @returns A boolean indicating the continue flag to process next page
    */
   private enumerate() {
-    this.pagingState = "IntrapageIteration";
     let keepIterating = true;
 
     const pageItems = this.currentPage?.value;
     if (pageItems === undefined || pageItems.length === 0) {
       return false;
     }
+    this.pagingState = "IntrapageIteration";
 
     // continue iterating from cursor
     for (let i = this.cursor; i < pageItems.length; i++) {
