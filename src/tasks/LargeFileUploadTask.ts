@@ -181,10 +181,14 @@ export class LargeFileUploadTask<T extends Parsable> {
   public async upload(progress?: IProgress): Promise<UploadResult<T>> {
     const sliceRequests = this.getUploadSliceRequests();
     for (const request of sliceRequests) {
-      const uploadResult = await request.uploadSlice(this.uploadStream);
-      progress?.report(request.rangeEnd);
-      if (uploadResult?.itemResponse || uploadResult?.location) {
-        return uploadResult;
+      try {
+        const uploadResult = await request.uploadSlice(this.uploadStream);
+        progress?.report(request.rangeEnd);
+        if (uploadResult?.itemResponse || uploadResult?.location) {
+          return uploadResult;
+        }
+      } catch (e) {
+        console.error(e);
       }
     }
     throw new Error("Upload failed");
@@ -223,7 +227,7 @@ export class LargeFileUploadTask<T extends Parsable> {
    * @param progress
    */
   public async resume(progress?: IProgress): Promise<UploadResult<T>> {
-    await this.refreshUploadStatus();
+    await this.updateSession();
     return this.upload(progress);
   }
 
@@ -233,7 +237,7 @@ export class LargeFileUploadTask<T extends Parsable> {
    *
    * @throws {Error} If the request fails.
    */
-  public async refreshUploadStatus() {
+  public async updateSession() {
     const requestInformation = new RequestInformation(HttpMethod.GET, this.Session.uploadUrl!);
     const response = await this.requestAdapter.send<UploadSessionResponse>(
       requestInformation,
@@ -249,13 +253,13 @@ export class LargeFileUploadTask<T extends Parsable> {
   }
 
   /**
-   * Cancels the current upload session.
+   * Deletes the current upload session.
    * Sends a PUT request to the upload URL to cancel the session.
    *
    * @returns {Promise<void>} A promise that resolves when the session is canceled.
    */
-  public async cancel(): Promise<void> {
-    const requestInformation = new RequestInformation(HttpMethod.PUT, this.Session.uploadUrl!);
+  public async deleteSession(): Promise<void> {
+    const requestInformation = new RequestInformation(HttpMethod.DELETE, this.Session.uploadUrl!);
     await this.requestAdapter.sendNoResponseContent(requestInformation, this.errorMappings);
   }
 

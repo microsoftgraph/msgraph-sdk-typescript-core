@@ -34,6 +34,12 @@ export class UploadSlice<T extends Parsable> {
     readonly errorMappings: ErrorMappings,
   ) {}
 
+  /**
+   * Uploads a slice of the file to the server.
+   *
+   * @param {ReadableStream<Uint8Array>} stream - The stream of the file slice to be uploaded.
+   * @returns {Promise<UploadResult<T> | undefined>} - The result of the upload operation.
+   */
   public async uploadSlice(stream: ReadableStream<Uint8Array>): Promise<UploadResult<T> | undefined> {
     const data = await this.readSection(stream, this.rangeBegin, this.rangeEnd);
     const requestInformation = new RequestInformation(HttpMethod.PUT, this.sessionUrl);
@@ -46,21 +52,20 @@ export class UploadSlice<T extends Parsable> {
     const headerOptions = new HeadersInspectionOptions({ inspectResponseHeaders: true });
     requestInformation.addRequestOptions([headerOptions]);
 
-    const itemResponse = await this.requestAdapter.send<T>(
-      requestInformation,
-      this.parsableFactory,
-      this.errorMappings,
-    );
+    let itemResponse = await this.requestAdapter.send<T>(requestInformation, this.parsableFactory, this.errorMappings);
 
     const locations = headerOptions.getResponseHeaders().get("location");
 
     let uploadSession: UploadSession | null = null;
-    if (itemResponse && ("expirationDateTime" in itemResponse || "additionalData" in itemResponse)) {
-      uploadSession = {};
-      if ("expirationDateTime" in itemResponse)
-        uploadSession.expirationDateTime = itemResponse.expirationDateTime as Date | null;
-      if ("nextExpectedRanges" in itemResponse)
-        uploadSession.nextExpectedRanges = itemResponse.nextExpectedRanges as string[] | null;
+    if (itemResponse) {
+      const { expirationDateTime, nextExpectedRanges } = itemResponse as Partial<UploadSession>;
+      if (nextExpectedRanges) {
+        uploadSession = {
+          expirationDateTime,
+          nextExpectedRanges: (nextExpectedRanges as unknown as string[])[0].split(","),
+        };
+        itemResponse = undefined;
+      }
     }
 
     return {
@@ -70,16 +75,37 @@ export class UploadSlice<T extends Parsable> {
     };
   }
 
+  /**
+   * Reads a section of the stream from the specified start to end positions.
+   *
+   * @param {ReadableStream<Uint8Array>} stream - The stream to read from.
+   * @param {number} start - The starting byte position.
+   * @param {number} end - The ending byte position.
+   * @returns {Promise<ArrayBuffer>} - A promise that resolves to an ArrayBuffer containing the read bytes.
+   */
   private async readSection(stream: ReadableStream<Uint8Array>, start: number, end: number): Promise<ArrayBuffer> {
     const reader = stream.getReader();
     let bytesRead = 0;
     const chunks: Uint8Array[] = [];
+    const totalBytesToRead = end - start;
 
-    while (bytesRead < end - start + 1) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      bytesRead += value.length;
+    try {
+      while (bytesRead < totalBytesToRead) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          const remainingBytes = totalBytesToRead - bytesRead;
+          if (value.length > remainingBytes) {
+            chunks.push(value.slice(0, remainingBytes));
+            bytesRead += remainingBytes;
+          } else {
+            chunks.push(value);
+            bytesRead += value.length;
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
     }
 
     const result = new Uint8Array(bytesRead);

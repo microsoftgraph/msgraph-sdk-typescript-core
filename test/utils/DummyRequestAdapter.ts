@@ -55,6 +55,11 @@ export class DummyRequestAdapter implements RequestAdapter {
     return this.requests;
   }
 
+  resetAdapter(): void {
+    this.requests = [];
+    this.response = [];
+  }
+
   convertToNativeRequest<T>(requestInfo: RequestInformation): Promise<T> {
     return Promise.resolve(undefined as T);
   }
