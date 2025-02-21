@@ -60,7 +60,6 @@ export type PagingState = "NotStarted" | "Paused" | "IntrapageIteration" | "Inte
 /**
  * Class representing a PageIterator to iterate over paginated collections.
  * @template T - The type of the items in the collection.
- * @template C - The type of the page result.
  *
  * This class provides methods to iterate over a collection of items that are paginated.
  * It handles fetching the next set of items when the current page is exhausted.
@@ -72,7 +71,7 @@ export type PagingState = "NotStarted" | "Paused" | "IntrapageIteration" | "Inte
  * The PageIterator also supports error handling through error mappings and can be configured
  * with custom request options.
  */
-export class PageIterator<T extends Parsable, C extends Parsable> {
+export class PageIterator<T extends Parsable> {
   /**
    * @private
    * Member holding the GraphClient instance
@@ -99,15 +98,9 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
 
   /**
    * @private
-   * Member holding the headers that can be added to the request
-   */
-  private readonly headers: Headers;
-
-  /**
-   * @private
    * Member holding the factory to create the parsable object
    */
-  private readonly parsableFactory: ParsableFactory<C>;
+  private readonly parsableFactory: ParsableFactory<PageCollection<T>>;
 
   /**
    * @private
@@ -115,7 +108,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
    */
   private readonly errorMappings: ErrorMappings;
 
-  /*
+  /**
    * @private
    * Member holding the callback for iteration
    */
@@ -128,24 +121,30 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
   private pagingState: PagingState;
 
   /**
+   * @private
+   * Member holding the headers for the request
+   */
+  private readonly options?: PagingRequestOptions;
+
+  /**
    * @public
    * @constructor
    * Creates new instance for PageIterator
    * @returns An instance of a PageIterator
    * @param requestAdapter - The request adapter
-   * @param pageResult - The page collection result
+   * @param pageResult - The page collection result of T
    * @param callback - The callback function to be called on each item
    * @param errorMappings - The error mappings
-   * @param parsableFactory - The factory to create the parsable object
+   * @param parsableFactory - The factory to create the parsable object collection
    * @param options - The request options to configure the request
    */
   public constructor(
     requestAdapter: RequestAdapter,
-    pageResult: C,
+    pageResult: PageCollection<T>,
     callback: PageIteratorCallback<T>,
-    parsableFactory: ParsableFactory<C>,
+    parsableFactory: ParsableFactory<PageCollection<T>>,
     errorMappings: ErrorMappings,
-    readonly options?: PagingRequestOptions,
+    options?: PagingRequestOptions,
   ) {
     if (!requestAdapter) {
       const error = new Error("Request adapter is undefined, Please provide a valid request adapter");
@@ -173,11 +172,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
       throw error;
     }
     this.requestAdapter = requestAdapter;
-    const parsedValue = this.castPageCollection(pageResult);
-    if (!parsedValue.value || !Array.isArray(parsedValue.value)) {
-      throw new Error("The current page does not have a property of type value or contains invalid items");
-    }
-    this.currentPage = parsedValue;
+    this.currentPage = pageResult;
 
     this.cursor = 0;
     this.complete = false;
@@ -185,19 +180,17 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
     this.parsableFactory = parsableFactory;
     this.callback = callback;
 
-    this.headers = new Headers();
-    this.headers.set("Content-Type", new Set(["application/json"]));
-    this.pagingState = "NotStarted";
-  }
-
-  private castPageCollection(pageResult: C): PageCollection<T> {
-    const result: PageCollection<T> = { value: [] };
-    for (const key in pageResult) {
-      if (Object.prototype.hasOwnProperty.call(pageResult, key)) {
-        result[key] = pageResult[key];
-      }
+    if (!options) {
+      options = {};
     }
-    return result;
+    if (!options.headers) {
+      options.headers = new Headers();
+    }
+    if (!options.headers.has("Content-Type")) {
+      options.headers.add("Content-Type", "application/json");
+    }
+    this.options = options;
+    this.pagingState = "NotStarted";
   }
 
   /**
@@ -275,7 +268,6 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
     const requestInformation = new RequestInformation();
     requestInformation.httpMethod = HttpMethod.GET;
     requestInformation.urlTemplate = this.getOdataNextLink();
-    requestInformation.headers.addAll(this.headers);
     if (this.options) {
       if (this.options.headers) {
         requestInformation.headers.addAll(this.options.headers);
@@ -285,16 +277,11 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
       }
     }
 
-    const graphRequest = await this.requestAdapter.send<C>(
+    return await this.requestAdapter.send<PageCollection<T>>(
       requestInformation,
       this.parsableFactory,
       this.errorMappings,
     );
-    if (graphRequest != null) {
-      return this.castPageCollection(graphRequest);
-    }
-
-    return Promise.resolve(undefined);
   }
 
   /**
