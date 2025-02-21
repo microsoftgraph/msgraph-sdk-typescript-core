@@ -52,21 +52,25 @@ export interface PagingRequestOptions {
 }
 
 /**
- * @enum
- * Enum representing the state of the iterator
+ * @typedef {string} PagingState
+ * Type representing the state of the iterator
  */
-export enum PagingState {
-  NotStarted,
-  Paused,
-  IntrapageIteration,
-  InterpageIteration,
-  Delta,
-  Complete,
-}
+export type PagingState = "NotStarted" | "Paused" | "IntrapageIteration" | "InterpageIteration" | "Delta" | "Complete";
 
 /**
- * @class
- * Class for PageIterator
+ * Class representing a PageIterator to iterate over paginated collections.
+ * @template T - The type of the items in the collection.
+ * @template C - The type of the page result.
+ *
+ * This class provides methods to iterate over a collection of items that are paginated.
+ * It handles fetching the next set of items when the current page is exhausted.
+ * The iteration can be paused and resumed, and the state of the iterator can be queried.
+ *
+ * The PageIterator uses a callback function to process each item in the collection.
+ * The callback function should return a boolean indicating whether to continue the iteration.
+ *
+ * The PageIterator also supports error handling through error mappings and can be configured
+ * with custom request options.
  */
 export class PageIterator<T extends Parsable, C extends Parsable> {
   /**
@@ -183,7 +187,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
 
     this.headers = new Headers();
     this.headers.set("Content-Type", new Set(["application/json"]));
-    this.pagingState = PagingState.NotStarted;
+    this.pagingState = "NotStarted";
   }
 
   private castPageCollection(pageResult: C): PageCollection<T> {
@@ -237,12 +241,12 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
         this.cursor >= (this.currentPage?.value.length ?? 0)
       ) {
         this.complete = true;
-        this.pagingState = PagingState.Complete;
+        this.pagingState = "Complete";
         return;
       }
 
       // waiting for delta page
-      this.pagingState = PagingState.Delta;
+      this.pagingState = "Delta";
 
       const nextPage = await this.next();
       if (!nextPage) {
@@ -267,7 +271,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
    * @returns A promise that resolves to a response data with next page collection
    */
   public async next(): Promise<PageCollection<T> | undefined> {
-    this.pagingState = PagingState.InterpageIteration;
+    this.pagingState = "InterpageIteration";
     const requestInformation = new RequestInformation();
     requestInformation.httpMethod = HttpMethod.GET;
     requestInformation.urlTemplate = this.getOdataNextLink();
@@ -318,7 +322,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
    * @returns A boolean indicating the continue flag to process next page
    */
   private enumerate() {
-    this.pagingState = PagingState.IntrapageIteration;
+    this.pagingState = "IntrapageIteration";
     let keepIterating = true;
 
     const pageItems = this.currentPage?.value;
@@ -331,7 +335,7 @@ export class PageIterator<T extends Parsable, C extends Parsable> {
       keepIterating = this.callback(pageItems[i]);
       this.cursor = i + 1;
       if (!keepIterating) {
-        this.pagingState = PagingState.Paused;
+        this.pagingState = "Paused";
         break;
       }
     }

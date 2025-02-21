@@ -202,7 +202,7 @@ describe("PageIterator tests", () => {
       halfWayCallbackCounter = 5;
       await pageIterator.iterate();
       assert.isFalse(pageIterator.isComplete());
-      assert.equal(pageIterator.getPagingState(), PagingState.Paused);
+      assert.equal(pageIterator.getPagingState(), "Paused");
     });
 
     it("Should return true for complete iteration", async () => {
@@ -215,7 +215,7 @@ describe("PageIterator tests", () => {
       );
       await pageIterator.iterate();
       assert.isTrue(pageIterator.isComplete());
-      assert.equal(pageIterator.getPagingState(), PagingState.Complete);
+      assert.equal(pageIterator.getPagingState(), "Complete");
     });
   });
 });
