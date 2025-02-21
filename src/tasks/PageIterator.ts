@@ -238,12 +238,12 @@ export class PageIterator<T extends Parsable> {
         return;
       }
 
-      // waiting for delta page
-      this.pagingState = "Delta";
-
       const nextPage = await this.next();
       if (!nextPage) {
         return;
+      }
+      if (!nextPage.odataNextLink) {
+        this.pagingState = "Delta";
       }
       this.currentPage = nextPage;
     }
