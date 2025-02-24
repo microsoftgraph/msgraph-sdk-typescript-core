@@ -13,6 +13,7 @@ import {
   ParsableFactory,
   RequestAdapter,
   RequestInformation,
+  type AdditionalDataHolder,
 } from "@microsoft/kiota-abstractions";
 import { HeadersInspectionOptions } from "@microsoft/kiota-http-fetchlibrary";
 import { UploadResult, UploadSession } from "./LargeFileUploadTask";
@@ -40,7 +41,7 @@ export class UploadSlice<T extends Parsable> {
    * @param {ReadableStream<Uint8Array>} stream - The stream of the file slice to be uploaded.
    * @returns {Promise<UploadResult<T> | undefined>} - The result of the upload operation.
    */
-  public async uploadSlice(stream: ReadableStream<Uint8Array>): Promise<UploadResult<T> | undefined> {
+  public async uploadSlice(stream: ReadableStream<Uint8Array>): Promise<UploadResult<T> | UploadSession | undefined> {
     const data = await this.readSection(stream, this.rangeBegin, this.rangeEnd);
     const requestInformation = new RequestInformation(HttpMethod.PUT, this.sessionUrl);
     requestInformation.headers = new Headers([
@@ -52,27 +53,39 @@ export class UploadSlice<T extends Parsable> {
     const headerOptions = new HeadersInspectionOptions({ inspectResponseHeaders: true });
     requestInformation.addRequestOptions([headerOptions]);
 
-    let itemResponse = await this.requestAdapter.send<T>(requestInformation, this.parsableFactory, this.errorMappings);
+    const itemResponse = await this.requestAdapter.send<T>(
+      requestInformation,
+      this.parsableFactory,
+      this.errorMappings,
+    );
 
     const locations = headerOptions.getResponseHeaders().get("location");
 
-    let uploadSession: UploadSession | null = null;
     if (itemResponse) {
-      const { expirationDateTime, nextExpectedRanges } = itemResponse as Partial<UploadSession>;
-      if (nextExpectedRanges) {
-        uploadSession = {
-          expirationDateTime,
-          nextExpectedRanges: (nextExpectedRanges as unknown as string[])[0].split(","),
-        };
-        itemResponse = undefined;
+      if (this.isUploadSessionResponse(itemResponse)) {
+        return itemResponse;
+      }
+      const { additionalData } = itemResponse as Partial<AdditionalDataHolder>;
+      if (additionalData && this.isUploadSessionResponse(additionalData)) {
+        return additionalData;
       }
     }
 
     return {
       itemResponse,
       location: locations ? (locations as unknown as string[])[0] : undefined,
-      uploadSession,
     };
+  }
+
+  private isUploadSessionResponse(item: Parsable | AdditionalDataHolder): UploadSession | null {
+    const { expirationDateTime, nextExpectedRanges } = item as Partial<UploadSession>;
+    if (nextExpectedRanges) {
+      return {
+        expirationDateTime,
+        nextExpectedRanges,
+      };
+    }
+    return null;
   }
 
   /**

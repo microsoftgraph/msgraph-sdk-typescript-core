@@ -51,7 +51,6 @@ export interface UploadSession {
  */
 export interface UploadResult<T> {
   itemResponse?: T | null;
-  uploadSession?: UploadSession | null;
   location?: string;
 }
 
@@ -184,8 +183,9 @@ export class LargeFileUploadTask<T extends Parsable> {
       try {
         const uploadResult = await this.uploadWithRetry(request);
         progress?.report(request.rangeEnd);
-        if (uploadResult?.itemResponse || uploadResult?.location) {
-          return uploadResult;
+        const { itemResponse, location } = uploadResult as Partial<UploadResult<T>>;
+        if (itemResponse || location) {
+          return uploadResult as UploadResult<T>;
         }
       } catch (e) {
         console.error(e);
@@ -199,10 +199,13 @@ export class LargeFileUploadTask<T extends Parsable> {
    *
    * @param {UploadSlice<T>} uploadSlice - The upload slice to be uploaded.
    * @param {number} [maxTries=3] - The maximum number of retry attempts.
-   * @returns {Promise<UploadResult<T> | undefined>} - The result of the upload.
+   * @returns {Promise<UploadResult<T> | UploadSession | undefined>} - The result of the upload.
    * @throws {Error} If the maximum number of retries is reached.
    */
-  private async uploadWithRetry(uploadSlice: UploadSlice<T>, maxTries = 3): Promise<UploadResult<T> | undefined> {
+  private async uploadWithRetry(
+    uploadSlice: UploadSlice<T>,
+    maxTries = 3,
+  ): Promise<UploadResult<T> | UploadSession | undefined> {
     let uploadTries = 0;
     while (uploadTries < maxTries) {
       try {
@@ -235,9 +238,10 @@ export class LargeFileUploadTask<T extends Parsable> {
    * Refreshes the current upload session status by making a GET request to the upload URL.
    * Updates the session expiration date, next expected ranges, and remaining ranges based on the response.
    *
+   * @returns {Promise<UploadSession>} - A promise that resolves to the updated upload session.
    * @throws {Error} If the request fails.
    */
-  public async updateSession() {
+  public async updateSession(): Promise<UploadSession> {
     const url = this.Session.uploadUrl;
     if (!url) {
       throw new Error("Upload url is invalid");
@@ -252,8 +256,12 @@ export class LargeFileUploadTask<T extends Parsable> {
     if (response) {
       this.Session.expirationDateTime = response?.expirationDateTime;
       this.Session.nextExpectedRanges = response.nextExpectedRanges;
+      if (response.uploadUrl) {
+        this.Session.uploadUrl = response.uploadUrl;
+      }
       this.rangesRemaining = this.getRangesRemaining(this.Session);
     }
+    return response;
   }
 
   /**
