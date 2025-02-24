@@ -16,9 +16,9 @@ import {
   ParsableFactory,
   ParseNode,
   ErrorMappings,
+  HttpMethod,
 } from "@microsoft/kiota-abstractions";
 import { UploadSlice } from "./UploadSlice";
-import { HttpMethod } from "@microsoft/kiota-abstractions/dist/es/src/httpMethod";
 
 /**
  * @interface
@@ -56,16 +56,16 @@ export interface UploadResult<T> {
 }
 
 /**
- * BatchResponseCollection ParsableFactory
+ * UploadSession ParsableFactory
  * Creates a factory function to deserialize the upload session response.
  *
  * @param {ParseNode} _parseNode - The parse node to deserialize.
  * @returns {Function} - A function that takes an instance of Parsable and returns a record of deserialization functions.
  */
-export const createUploadSessionResponseFromDiscriminatorValue = (
+export const createUploadSessionFromDiscriminatorValue = (
   _parseNode: ParseNode | undefined,
 ): ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) => {
-  return deserializeIntoUploadSessionResponse;
+  return deserializeIntoUploadSession;
 };
 
 /**
@@ -74,7 +74,7 @@ export const createUploadSessionResponseFromDiscriminatorValue = (
  * @param {Partial<UploadSession>} [uploadSession] - The upload session object to deserialize into.
  * @returns {Record<string, (node: ParseNode) => void>} - A record of deserialization functions.
  */
-export const deserializeIntoUploadSessionResponse = (
+export const deserializeIntoUploadSession = (
   uploadSession: Partial<UploadSession> | undefined = {},
 ): Record<string, (node: ParseNode) => void> => {
   return {
@@ -83,6 +83,12 @@ export const deserializeIntoUploadSessionResponse = (
     },
     nextExpectedRanges: n => {
       uploadSession.nextExpectedRanges = n.getCollectionOfPrimitiveValues();
+    },
+    "@odata.type": n => {
+      uploadSession.odataType = n.getStringValue();
+    },
+    uploadUrl: n => {
+      uploadSession.uploadUrl = n.getStringValue();
     },
   };
 };
@@ -239,7 +245,7 @@ export class LargeFileUploadTask<T extends Parsable> {
     const requestInformation = new RequestInformation(HttpMethod.GET, url);
     const response = await this.requestAdapter.send<UploadSession>(
       requestInformation,
-      createUploadSessionResponseFromDiscriminatorValue,
+      createUploadSessionFromDiscriminatorValue,
       this.errorMappings,
     );
 
