@@ -238,10 +238,10 @@ export class LargeFileUploadTask<T extends Parsable> {
    * Refreshes the current upload session status by making a GET request to the upload URL.
    * Updates the session expiration date, next expected ranges, and remaining ranges based on the response.
    *
-   * @returns {Promise<UploadSession>} - A promise that resolves to the updated upload session.
+   * @returns {Promise<UploadSession | undefined>} - A promise that resolves to the updated upload session.
    * @throws {Error} If the request fails.
    */
-  public async updateSession(): Promise<UploadSession> {
+  public async updateSession(): Promise<UploadSession | undefined> {
     const url = this.Session.uploadUrl;
     if (!url) {
       throw new Error("Upload url is invalid");
