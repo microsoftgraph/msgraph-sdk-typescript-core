@@ -1,5 +1,5 @@
 import { assert, describe, it } from "vitest";
-import { PageCollection, PageIterator, PageIteratorCallback, PagingState } from "../../src";
+import { PageCollection, PageIterator, PageIteratorCallback } from "../../src";
 import { ErrorMappings, Headers, Parsable, ParseNode } from "@microsoft/kiota-abstractions";
 // @ts-ignore
 import { DummyRequestAdapter } from "../utils/DummyRequestAdapter";
@@ -113,7 +113,7 @@ describe("PageIterator tests", () => {
         errorMappings,
       );
       await pageIterator.iterate();
-      assert.isTrue(pageIterator.isComplete());
+      assert.equal(pageIterator.getPagingState(), "Complete");
     });
     it("Should execute post with passed headers", async () => {
       const headers = new Headers();
@@ -169,7 +169,7 @@ describe("PageIterator tests", () => {
       );
       halfWayCallbackCounter = 5;
       await pageIterator.iterate();
-      assert.isFalse(pageIterator.isComplete());
+      assert.equal(pageIterator.getPagingState(), "Paused");
     });
   });
 
@@ -184,13 +184,13 @@ describe("PageIterator tests", () => {
       );
       halfWayCallbackCounter = 5;
       await pageIterator.iterate();
-      assert.isFalse(pageIterator.isComplete());
+      assert.equal(pageIterator.getPagingState(), "Paused");
       await pageIterator.resume();
-      assert.isTrue(pageIterator.isComplete());
+      assert.equal(pageIterator.getPagingState(), "Complete");
     });
   });
 
-  describe("isComplete", () => {
+  describe("PagingState", () => {
     it("Should return false for incomplete iteration", async () => {
       const pageIterator = new PageIterator(
         adapter,
@@ -201,8 +201,31 @@ describe("PageIterator tests", () => {
       );
       halfWayCallbackCounter = 5;
       await pageIterator.iterate();
-      assert.isFalse(pageIterator.isComplete());
       assert.equal(pageIterator.getPagingState(), "Paused");
+    });
+
+    it("Should return delta state when fetching a delta page", async () => {
+      const deltaCollection = {
+        value: [...value],
+        additionalContent: "additional content",
+        "@odata.deltaLink": "deltaURL",
+      };
+
+      const pageIterator = new PageIterator(
+        adapter,
+        deltaCollection,
+        truthyCallback,
+        createPageCollectionFromDiscriminatorValue,
+        errorMappings,
+      );
+      await pageIterator.iterate();
+      assert.equal(pageIterator.getPagingState(), "Delta");
+
+      // second iterate call should complete the iteration
+
+      adapter.setResponse(getPageCollection());
+      await pageIterator.iterate();
+      assert.equal(pageIterator.getPagingState(), "Complete");
     });
 
     it("Should return true for complete iteration", async () => {
@@ -214,7 +237,6 @@ describe("PageIterator tests", () => {
         errorMappings,
       );
       await pageIterator.iterate();
-      assert.isTrue(pageIterator.isComplete());
       assert.equal(pageIterator.getPagingState(), "Complete");
     });
   });

@@ -86,12 +86,6 @@ export class PageIterator<T extends Parsable> {
 
   /**
    * @private
-   * Member holding a complete/incomplete status of an iterator
-   */
-  private complete: boolean;
-
-  /**
-   * @private
    * Member holding the current position on the collection
    */
   private cursor: number;
@@ -175,19 +169,12 @@ export class PageIterator<T extends Parsable> {
     this.currentPage = pageResult;
 
     this.cursor = 0;
-    this.complete = false;
     this.errorMappings = errorMappings;
     this.parsableFactory = parsableFactory;
     this.callback = callback;
 
     if (!options) {
       options = {};
-    }
-    if (!options.headers) {
-      options.headers = new Headers();
-    }
-    if (!options.headers.has("Content-Type")) {
-      options.headers.add("Content-Type", "application/json");
     }
     this.options = options;
     this.pagingState = "NotStarted";
@@ -220,32 +207,49 @@ export class PageIterator<T extends Parsable> {
    * This happens until the nextLink is drained out or the user responds with a red flag to continue from callback
    */
   public async iterate() {
-    const keepIterating = true;
+    while (true) {
+      if (this.pagingState === "Complete") {
+        return;
+      }
 
-    while (keepIterating) {
-      const advance = this.enumerate();
+      if (this.pagingState === "Delta") {
+        const nextPage = await this.fetchNextPage();
+        if (!nextPage) {
+          this.pagingState = "Complete";
+          return;
+        }
+        this.currentPage = nextPage;
+      }
+
+      const advance = this.enumeratePage();
       if (!advance) {
         return;
       }
 
       const nextLink = this.getOdataNextLink();
-      if (
-        (nextLink === undefined || nextLink === null || nextLink === "") &&
-        this.cursor >= (this.currentPage?.value.length ?? 0)
-      ) {
-        this.complete = true;
+      const deltaLink = this.getOdataDeltaLink();
+      const hasNextPageLink = nextLink || deltaLink;
+
+      const pageSize = this.currentPage?.value.length ?? 0;
+      const isEndOfPage = !hasNextPageLink && this.cursor >= pageSize;
+      if (isEndOfPage) {
         this.pagingState = "Complete";
         return;
       }
 
-      const nextPage = await this.next();
-      if (!nextPage) {
-        return;
+      if (hasNextPageLink && this.cursor >= pageSize) {
+        this.cursor = 0;
+        if (deltaLink) {
+          this.pagingState = "Delta";
+          return;
+        }
+        const nextPage = await this.fetchNextPage();
+        if (!nextPage) {
+          this.pagingState = "Complete";
+          return;
+        }
+        this.currentPage = nextPage;
       }
-      if (!nextPage.odataNextLink && nextPage.odataDeltaLink) {
-        this.pagingState = "Delta";
-      }
-      this.currentPage = nextPage;
     }
   }
 
@@ -263,11 +267,19 @@ export class PageIterator<T extends Parsable> {
    * Helper to make a get request to fetch next page with nextLink url and update the page iterator instance with the returned response
    * @returns A promise that resolves to a response data with next page collection
    */
-  public async next(): Promise<PageCollection<T> | undefined> {
+  private async fetchNextPage(): Promise<PageCollection<T> | undefined> {
     this.pagingState = "InterpageIteration";
+
+    const nextLink = this.getOdataNextLink();
+    const deltaLink = this.getOdataDeltaLink();
+
+    if (!nextLink && !deltaLink) {
+      throw new Error("NextLink and DeltaLink are undefined, Please provide a valid nextLink or deltaLink");
+    }
+
     const requestInformation = new RequestInformation();
     requestInformation.httpMethod = HttpMethod.GET;
-    requestInformation.urlTemplate = this.getOdataNextLink();
+    requestInformation.urlTemplate = nextLink ?? deltaLink;
     if (this.options) {
       if (this.options.headers) {
         requestInformation.headers.addAll(this.options.headers);
@@ -295,27 +307,25 @@ export class PageIterator<T extends Parsable> {
   }
 
   /**
-   * @public
-   * To get the completeness status of the iterator
-   * @returns Boolean indicating the completeness
-   */
-  public isComplete(): boolean {
-    return this.complete;
-  }
-
-  /**
    * @private
    * Iterates over a collection by enqueuing entries one by one and kicking the callback with the enqueued entry
    * @returns A boolean indicating the continue flag to process next page
    */
-  private enumerate() {
+  private enumeratePage(): boolean {
+    this.pagingState = "IntrapageIteration";
+
     let keepIterating = true;
 
     const pageItems = this.currentPage?.value;
-    if (pageItems === undefined || pageItems.length === 0) {
-      return false;
+
+    // pageItems should never be undefined at this point
+    if (!pageItems) {
+      throw new Error("Page items are undefined, Please provide a valid page items");
     }
-    this.pagingState = "IntrapageIteration";
+
+    if (pageItems.length === 0) {
+      return true;
+    }
 
     // continue iterating from cursor
     for (let i = this.cursor; i < pageItems.length; i++) {
