@@ -84,35 +84,60 @@ export class UploadSlice<T extends Parsable> {
    * @returns {Promise<ArrayBuffer>} - A promise that resolves to an ArrayBuffer containing the read bytes.
    */
   private async readSection(stream: ReadableStream<Uint8Array>, start: number, end: number): Promise<ArrayBuffer> {
+    if (start < 0 || end < start) {
+      throw new Error("Invalid start or end values.");
+    }
+
     const reader = stream.getReader();
-    let bytesRead = 0;
+    let position = 0; // current absolute position in the stream
     const chunks: Uint8Array[] = [];
-    const totalBytesToRead = end - start;
+    let totalLength = 0;
 
     try {
-      while (bytesRead < totalBytesToRead) {
+      while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        if (value) {
-          const remainingBytes = totalBytesToRead - bytesRead;
-          if (value.length > remainingBytes) {
-            chunks.push(value.slice(0, remainingBytes));
-            bytesRead += remainingBytes;
-          } else {
-            chunks.push(value);
-            bytesRead += value.length;
-          }
+        if (!value) continue;
+
+        const chunk = value;
+        const chunkLength = chunk.byteLength;
+
+        // If the entire chunk is before our start, skip it.
+        if (position + chunkLength <= start) {
+          position += chunkLength;
+          continue;
         }
+
+        // If we've already passed the end, we can stop reading.
+        if (position > end) break;
+
+        // Calculate the start index within the current chunk.
+        const startIndex = position < start ? start - position : 0;
+        // Calculate the end index within the current chunk.
+        // Since `end` is inclusive, we need to slice up to (end - position + 1).
+        let endIndex = chunkLength;
+        if (position + chunkLength - 1 > end) {
+          endIndex = end - position + 1;
+        }
+
+        const sliced = chunk.slice(startIndex, endIndex);
+        chunks.push(sliced);
+        totalLength += sliced.byteLength;
+
+        position += chunkLength;
+        // Stop reading if we've already reached beyond the desired range.
+        if (position > end) break;
       }
     } finally {
       reader.releaseLock();
     }
 
-    const result = new Uint8Array(bytesRead);
+    // Concatenate all collected chunks into one Uint8Array.
+    const result = new Uint8Array(totalLength);
     let offset = 0;
     for (const chunk of chunks) {
       result.set(chunk, offset);
-      offset += chunk.length;
+      offset += chunk.byteLength;
     }
 
     return result.buffer;

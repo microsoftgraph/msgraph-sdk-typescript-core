@@ -56,16 +56,11 @@ export interface UploadResult<T> {
 }
 
 /**
- * @interface
- * Signature to represent the upload session response
- */
-export interface UploadSessionResponse extends Parsable {
-  expirationDateTime?: Date | null;
-  nextExpectedRanges?: string[] | null;
-}
-/**
  * BatchResponseCollection ParsableFactory
- * @param _parseNode
+ * Creates a factory function to deserialize the upload session response.
+ *
+ * @param {ParseNode} _parseNode - The parse node to deserialize.
+ * @returns {Function} - A function that takes an instance of Parsable and returns a record of deserialization functions.
  */
 export const createUploadSessionResponseFromDiscriminatorValue = (
   _parseNode: ParseNode | undefined,
@@ -74,18 +69,20 @@ export const createUploadSessionResponseFromDiscriminatorValue = (
 };
 
 /**
- * Deserializes the batch response body
- * @param uploadSessionResponse
+ * Deserializes the upload session response body.
+ *
+ * @param {Partial<UploadSession>} [uploadSession] - The upload session object to deserialize into.
+ * @returns {Record<string, (node: ParseNode) => void>} - A record of deserialization functions.
  */
 export const deserializeIntoUploadSessionResponse = (
-  uploadSessionResponse: Partial<UploadSessionResponse> | undefined = {},
+  uploadSession: Partial<UploadSession> | undefined = {},
 ): Record<string, (node: ParseNode) => void> => {
   return {
     expirationDateTime: n => {
-      uploadSessionResponse.expirationDateTime = n.getDateValue();
+      uploadSession.expirationDateTime = n.getDateValue();
     },
     nextExpectedRanges: n => {
-      uploadSessionResponse.nextExpectedRanges = n.getCollectionOfPrimitiveValues();
+      uploadSession.nextExpectedRanges = n.getCollectionOfPrimitiveValues();
     },
   };
 };
@@ -123,7 +120,7 @@ export class LargeFileUploadTask<T extends Parsable> {
    *
    * @param {RequestAdapter} requestAdapter - The request adapter to use for making HTTP requests.
    * @param {Parsable} uploadSession - The upload session information.
-   * @param {ReadableStream<Uint8Array>} uploadStream - The stream of the file to be uploaded.
+   * @param {ReadableStream<Uint8Array>} uploadStreamProvider - Returns an instance of an unconsumed new stream to be uploaded.
    * @param {number} [maxSliceSize=-1] - The maximum size of each file slice to be uploaded.
    * @param {ParsableFactory<T>} parsableFactory - The factory to create parsable objects.
    * @param {ErrorMappings} [errorMappings] - error mappings.
@@ -133,7 +130,7 @@ export class LargeFileUploadTask<T extends Parsable> {
   constructor(
     readonly requestAdapter: RequestAdapter,
     readonly uploadSession: Parsable,
-    readonly uploadStream: ReadableStream<Uint8Array>,
+    readonly uploadStreamProvider: () => ReadableStream<Uint8Array>,
     readonly maxSliceSize = -1,
     readonly parsableFactory: ParsableFactory<T>,
     errorMappings: ErrorMappings,
@@ -143,8 +140,8 @@ export class LargeFileUploadTask<T extends Parsable> {
       error.name = "Invalid Upload Session Error";
       throw error;
     }
-    if (!uploadStream) {
-      const error = new Error("Upload stream is undefined, Please provide a valid upload stream");
+    if (!uploadStreamProvider) {
+      const error = new Error("Upload stream provider is undefined, Please provide a valid upload stream");
       error.name = "Invalid Upload Stream Error";
       throw error;
     }
@@ -157,9 +154,6 @@ export class LargeFileUploadTask<T extends Parsable> {
       const error = new Error("Parsable factory is undefined, Please provide a valid parsable factory");
       error.name = "Invalid Parsable Factory Error";
       throw error;
-    }
-    if (uploadStream?.locked) {
-      throw new Error("Please provide stream value");
     }
     if (maxSliceSize <= 0) {
       this.maxSliceSize = DefaultSliceSize;
@@ -182,7 +176,7 @@ export class LargeFileUploadTask<T extends Parsable> {
     const sliceRequests = this.getUploadSliceRequests();
     for (const request of sliceRequests) {
       try {
-        const uploadResult = await request.uploadSlice(this.uploadStream);
+        const uploadResult = await this.uploadWithRetry(request);
         progress?.report(request.rangeEnd);
         if (uploadResult?.itemResponse || uploadResult?.location) {
           return uploadResult;
@@ -206,7 +200,7 @@ export class LargeFileUploadTask<T extends Parsable> {
     let uploadTries = 0;
     while (uploadTries < maxTries) {
       try {
-        return await uploadSlice.uploadSlice(this.uploadStream);
+        return await uploadSlice.uploadSlice(this.uploadStreamProvider());
       } catch (e) {
         console.error(e);
       }
@@ -238,8 +232,12 @@ export class LargeFileUploadTask<T extends Parsable> {
    * @throws {Error} If the request fails.
    */
   public async updateSession() {
-    const requestInformation = new RequestInformation(HttpMethod.GET, this.Session.uploadUrl!);
-    const response = await this.requestAdapter.send<UploadSessionResponse>(
+    const url = this.Session.uploadUrl;
+    if (!url) {
+      throw new Error("Upload url is invalid");
+    }
+    const requestInformation = new RequestInformation(HttpMethod.GET, url);
+    const response = await this.requestAdapter.send<UploadSession>(
       requestInformation,
       createUploadSessionResponseFromDiscriminatorValue,
       this.errorMappings,

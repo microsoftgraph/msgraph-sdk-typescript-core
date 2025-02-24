@@ -25,14 +25,16 @@ function deserializeIntoPageCollection(
   return {};
 }
 
-const sampleReadableStream = new ReadableStream<Uint8Array>({
-  start: controller => {
-    const encoder = new TextEncoder();
-    const chunk = encoder.encode("This is a 20-byte string");
-    controller.enqueue(chunk);
-    controller.close();
-  },
-});
+function createSampleReadableStream(): ReadableStream<Uint8Array> {
+  return new ReadableStream<Uint8Array>({
+    start: controller => {
+      const encoder = new TextEncoder();
+      const chunk = encoder.encode("This is a 24-byte string");
+      controller.enqueue(chunk);
+      controller.close();
+    },
+  });
+}
 
 const errorMappings: ErrorMappings = {
   XXX: parseNode => createGraphErrorFromDiscriminatorValue(parseNode),
@@ -58,14 +60,14 @@ describe("LargeFileUploadTask tests", () => {
   describe("initialization", () => {
     it("should initialize", () => {
       const session: SampleResponse = {
-        nextExpectedRanges: ["0-19"],
+        nextExpectedRanges: ["0-23"],
         expirationDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000), //
         uploadUrl: "https://example.com/upload",
       };
       const largeFileUploadTask = new LargeFileUploadTask(
         adapter,
         session,
-        sampleReadableStream,
+        createSampleReadableStream,
         10,
         createPageCollectionFromDiscriminatorValue,
         errorMappings,
@@ -77,7 +79,7 @@ describe("LargeFileUploadTask tests", () => {
         new LargeFileUploadTask(
           adapter,
           {} as SampleResponse,
-          sampleReadableStream,
+          createSampleReadableStream,
           10,
           createPageCollectionFromDiscriminatorValue,
           errorMappings,
@@ -89,14 +91,14 @@ describe("LargeFileUploadTask tests", () => {
     it("should split the file into expected ranges observing max size", async () => {
       adapter.resetAdapter();
       const session: SampleResponse = {
-        nextExpectedRanges: ["0-19"],
+        nextExpectedRanges: ["0-23"],
         expirationDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000), //
         uploadUrl: "https://example.com/upload",
       };
       const largeFileUploadTask = new LargeFileUploadTask(
         adapter,
         session,
-        sampleReadableStream,
+        createSampleReadableStream,
         5,
         createPageCollectionFromDiscriminatorValue,
         errorMappings,
@@ -105,7 +107,7 @@ describe("LargeFileUploadTask tests", () => {
       // Accessing the private method using bracket notation
       const uploadSlices = (largeFileUploadTask as any)["getUploadSliceRequests"]() as UploadSlice<SampleResponse>[];
       // cast the arrays to UploadSlice
-      assert.equal(uploadSlices.length, 4);
+      assert.equal(uploadSlices.length, 5);
 
       uploadSlices.forEach(slice => {
         assert.isAtMost(slice.rangeEnd - slice.rangeBegin + 1, 5, "Slice size should not be larger than 5");
@@ -116,18 +118,28 @@ describe("LargeFileUploadTask tests", () => {
           "Slices should be in order from largest to smallest",
         );
       }
+
+      const decoder = new TextDecoder();
+      let reconstructedString = "";
+      for (const slice of uploadSlices) {
+        const chunk = await (slice as any).readSection(createSampleReadableStream(), slice.rangeBegin, slice.rangeEnd);
+        console.log(slice.rangeBegin, slice.rangeEnd);
+        console.log("chunk", decoder.decode(chunk));
+        reconstructedString += decoder.decode(chunk);
+      }
+      assert.equal(reconstructedString, "This is a 24-byte string", "Reconstructed string should match the original");
     });
     it("should execute multiple file upload requests", async () => {
       adapter.resetAdapter();
       const session: SampleResponse = {
-        nextExpectedRanges: ["0-19"],
+        nextExpectedRanges: ["0-23"],
         expirationDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000), //
         uploadUrl: "https://example.com/upload",
       };
       const largeFileUploadTask = new LargeFileUploadTask(
         adapter,
         session,
-        sampleReadableStream,
+        createSampleReadableStream,
         10,
         createPageCollectionFromDiscriminatorValue,
         errorMappings,
@@ -143,7 +155,13 @@ describe("LargeFileUploadTask tests", () => {
       };
 
       adapter.setResponse({
-        nextExpectedRanges: ["20-39"],
+        nextExpectedRanges: ["10-19"],
+        expirationDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000), //
+        uploadUrl: "https://example.com/upload",
+      });
+
+      adapter.setResponse({
+        nextExpectedRanges: ["20-23"],
         expirationDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000), //
         uploadUrl: "https://example.com/upload",
       });
@@ -152,23 +170,23 @@ describe("LargeFileUploadTask tests", () => {
       });
 
       await largeFileUploadTask.upload(progressCallback);
-      assert.equal(progressCounter, 2);
-      assert.equal(lastCall, 19);
+      assert.equal(progressCounter, 3);
+      assert.equal(lastCall, 23);
 
       const requests = adapter.getRequests();
-      assert.equal(requests.length, 2);
+      assert.equal(requests.length, 3);
     });
     it("should delete an upload session", () => {
       adapter.resetAdapter();
       const session: SampleResponse = {
-        nextExpectedRanges: ["0-19"],
+        nextExpectedRanges: ["0-23"],
         expirationDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000), //
         uploadUrl: "https://example.com/upload",
       };
       const largeFileUploadTask = new LargeFileUploadTask(
         adapter,
         session,
-        sampleReadableStream,
+        createSampleReadableStream,
         10,
         createPageCollectionFromDiscriminatorValue,
         errorMappings,
@@ -184,14 +202,14 @@ describe("LargeFileUploadTask tests", () => {
     it("should update an upload session", () => {
       adapter.resetAdapter();
       const session: SampleResponse = {
-        nextExpectedRanges: ["0-19"],
+        nextExpectedRanges: ["0-23"],
         expirationDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000), //
         uploadUrl: "https://example.com/upload",
       };
       const largeFileUploadTask = new LargeFileUploadTask(
         adapter,
         session,
-        sampleReadableStream,
+        createSampleReadableStream,
         10,
         createPageCollectionFromDiscriminatorValue,
         errorMappings,
@@ -208,14 +226,14 @@ describe("LargeFileUploadTask tests", () => {
     it("should resume an upload session", async () => {
       adapter.resetAdapter();
       const session: SampleResponse = {
-        nextExpectedRanges: ["0-19"],
+        nextExpectedRanges: ["0-23"],
         expirationDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000), //
         uploadUrl: "https://example.com/upload",
       };
       const largeFileUploadTask = new LargeFileUploadTask(
         adapter,
         session,
-        sampleReadableStream,
+        createSampleReadableStream,
         10,
         createPageCollectionFromDiscriminatorValue,
         errorMappings,
