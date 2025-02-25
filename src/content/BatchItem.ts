@@ -104,7 +104,6 @@ export const serializeBatchItem = (
         writer.writeByteArrayValue("body", body);
       }
     }
-    writer.writeObjectValue("body", batchRequestData.body);
     writer.writeCollectionOfPrimitiveValues("dependsOn", batchRequestData.dependsOn);
   }
 };
