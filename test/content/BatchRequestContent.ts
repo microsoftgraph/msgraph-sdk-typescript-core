@@ -2,21 +2,27 @@ import { assert, describe, it } from "vitest";
 import { BatchRequestContent, BatchResponseContent } from "../../src";
 // @ts-ignore
 import { DummyRequestAdapter } from "../utils/DummyRequestAdapter";
-import { RequestInformation, HttpMethod } from "@microsoft/kiota-abstractions";
+import { RequestInformation, HttpMethod, ErrorMappings } from "@microsoft/kiota-abstractions";
 import { Headers } from "@microsoft/kiota-abstractions/dist/es/src/headers";
+// @ts-ignore
+import { createGraphErrorFromDiscriminatorValue } from "../tasks/PageIterator";
 
 const adapter = new DummyRequestAdapter();
+
+const errorMappings: ErrorMappings = {
+  XXX: parseNode => createGraphErrorFromDiscriminatorValue(parseNode),
+};
 
 describe("BatchRequestContent tests", () => {
   describe("Constructor", () => {
     it("Should create instance", () => {
-      const requestContent = new BatchRequestContent(adapter);
+      const requestContent = new BatchRequestContent(adapter, errorMappings);
       assert(requestContent instanceof BatchRequestContent);
     });
   });
   describe("AddRequest", () => {
     it("Should add request", () => {
-      const requestContent = new BatchRequestContent(adapter);
+      const requestContent = new BatchRequestContent(adapter, errorMappings);
 
       const requestInfo = new RequestInformation(HttpMethod.GET, "{+baseurl}/me");
       requestInfo.headers = new Headers();
@@ -31,7 +37,7 @@ describe("BatchRequestContent tests", () => {
       assert.equal(batchItem.url, requestInfo.URL);
     });
     it("Should respect maximum number of steps", () => {
-      const requestContent = new BatchRequestContent(adapter);
+      const requestContent = new BatchRequestContent(adapter, errorMappings);
 
       // create a loop of 20
       for (let i = 0; i < 20; i++) {
@@ -49,7 +55,7 @@ describe("BatchRequestContent tests", () => {
       );
     });
     it("Get content validates depends on", () => {
-      const requestContent = new BatchRequestContent(adapter);
+      const requestContent = new BatchRequestContent(adapter, errorMappings);
 
       const requestInfo = new RequestInformation(HttpMethod.GET, "{+baseurl}/me");
       const batchItem = requestContent.addBatchRequest(requestInfo);
@@ -74,7 +80,7 @@ describe("BatchRequestContent tests", () => {
 
   describe("PostRequest", () => {
     it("Should post a serialized batch of objects to the adapter", () => {
-      const requestContent = new BatchRequestContent(adapter);
+      const requestContent = new BatchRequestContent(adapter, errorMappings);
 
       const requestInfo = new RequestInformation(HttpMethod.GET, "{+baseurl}/me");
       const request = requestContent.addBatchRequest(requestInfo);

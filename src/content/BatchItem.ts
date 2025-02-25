@@ -28,8 +28,8 @@ export interface BatchItem {
   readonly id: string;
   method: string;
   url: string;
-  headers?: Record<string, string> | null;
-  body?: Record<string, any> | null;
+  headers?: Record<string, string> | Record<string, string[]> | null;
+  body?: ArrayBuffer | null;
   dependsOn?: string[];
 }
 
