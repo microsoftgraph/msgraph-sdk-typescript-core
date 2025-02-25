@@ -9,7 +9,8 @@
  * @module BatchResponseContent
  */
 
-import { BatchResponseCollection, BatchResponse } from "./BatchItem";
+import { BatchResponseBody, BatchResponse } from "./BatchItem";
+import { Parsable, deserializeFromJson, ParsableFactory } from "@microsoft/kiota-abstractions";
 
 /**
  * @class
@@ -25,10 +26,10 @@ export class BatchResponseContent {
    * @public
    * @constructor
    * Creates the BatchResponseContent instance
-   * @param {BatchResponseCollection} response - The response body returned for batch request from server
+   * @param {BatchResponseBody} response - The response body returned for batch request from server
    * @returns An instance of a BatchResponseContent
    */
-  public constructor(response: BatchResponseCollection) {
+  public constructor(response: BatchResponseBody) {
     this.responses = new Map();
     this.update(response);
   }
@@ -36,10 +37,10 @@ export class BatchResponseContent {
   /**
    * @public
    * Updates the Batch response content instance with given responses.
-   * @param {BatchResponseCollection} response - The response json representing batch response message
+   * @param {BatchResponseBody} response - The response json representing batch response message
    * @returns Nothing
    */
-  public update(response: BatchResponseCollection): void {
+  public update(response: BatchResponseBody): void {
     const responses = response.responses;
     for (let i = 0, l = responses.length; i < l; i++) {
       this.responses.set(responses[i].id, responses[i]);
@@ -54,6 +55,22 @@ export class BatchResponseContent {
    */
   public getResponseById(requestId: string): BatchResponse | undefined {
     return this.responses.get(requestId);
+  }
+
+  /**
+   * Retrieves a parsable response by request ID.
+   * @template T - The type of the parsable response.
+   * @param {string} requestId - The request ID value.
+   * @param {ParsableFactory<T>} factory - The factory to create the parsable response.
+   * @returns {T | undefined} The parsable response object instance for the particular request, or undefined if not found.
+   */
+  public getParsebleResponseById<T extends Parsable>(requestId: string, factory: ParsableFactory<T>): T | undefined {
+    const res = this.responses.get(requestId);
+    if (res?.body) {
+      const result = deserializeFromJson(res.body, factory);
+      return result as T;
+    }
+    return undefined;
   }
 
   /**

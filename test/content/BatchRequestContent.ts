@@ -2,15 +2,56 @@ import { assert, describe, it } from "vitest";
 import { BatchRequestContent, BatchResponseContent } from "../../src";
 // @ts-ignore
 import { DummyRequestAdapter } from "../utils/DummyRequestAdapter";
-import { RequestInformation, HttpMethod, ErrorMappings } from "@microsoft/kiota-abstractions";
-import { Headers } from "@microsoft/kiota-abstractions/dist/es/src/headers";
+import {
+  RequestInformation,
+  HttpMethod,
+  ErrorMappings,
+  ParseNode,
+  Parsable,
+  Headers,
+  registerDefaultDeserializer,
+} from "@microsoft/kiota-abstractions";
+import { JsonParseNodeFactory, JsonSerializationWriterFactory } from "@microsoft/kiota-serialization-json";
 // @ts-ignore
 import { createGraphErrorFromDiscriminatorValue } from "../tasks/PageIterator";
+import { createCipheriv } from "node:crypto";
 
 const adapter = new DummyRequestAdapter();
 
 const errorMappings: ErrorMappings = {
   XXX: parseNode => createGraphErrorFromDiscriminatorValue(parseNode),
+};
+
+interface SampleResponse {
+  value: number[];
+  additionalContent?: string;
+  id?: string;
+  name?: string;
+}
+
+export const createSampleFromDiscriminatorValue = (
+  _parseNode: ParseNode | undefined,
+): ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) => {
+  return deserializeIntoSample;
+};
+
+export const deserializeIntoSample = (
+  sampleResponse: Partial<SampleResponse> | undefined = {},
+): Record<string, (node: ParseNode) => void> => {
+  return {
+    value: n => {
+      sampleResponse.value = n.getCollectionOfPrimitiveValues<number>();
+    },
+    additionalContent: n => {
+      sampleResponse.additionalContent = n.getStringValue();
+    },
+    id: n => {
+      sampleResponse.id = n.getStringValue();
+    },
+    name: n => {
+      sampleResponse.name = n.getStringValue();
+    },
+  };
 };
 
 describe("BatchRequestContent tests", () => {
@@ -111,6 +152,20 @@ describe("BatchRequestContent tests", () => {
       const response = requestContent.getResponseById("1");
       assert.isNotNull(response);
       assert.equal(response?.status, 200);
+    });
+    it("Can parse a response a response by Id", () => {
+      registerDefaultDeserializer(JsonParseNodeFactory);
+
+      const sampleArrayBuffer = new TextEncoder().encode(JSON.stringify({ value: [1, 2, 3], id: "1", name: "test" }));
+      const requestContent = new BatchResponseContent({
+        responses: [{ id: "1", status: 200, headers: {}, body: sampleArrayBuffer }],
+      });
+
+      const response = requestContent.getParsebleResponseById<SampleResponse>("1", createSampleFromDiscriminatorValue);
+      assert.isNotNull(response);
+      assert.equal(response?.value.length, 3);
+      assert.equal(response?.id, "1");
+      assert.equal(response?.name, "test");
     });
   });
 });

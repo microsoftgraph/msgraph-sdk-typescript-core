@@ -1,14 +1,13 @@
-import { RequestAdapter, RequestInformation, HttpMethod, createGuid } from "@microsoft/kiota-abstractions";
+import { RequestAdapter, RequestInformation, HttpMethod, ErrorMappings } from "@microsoft/kiota-abstractions";
 import {
   BatchItem,
-  BatchRequestCollection,
-  BatchResponseCollection,
+  BatchRequestBody,
+  BatchResponseBody,
+  convertRequestInformationToBatchItem,
   createBatchResponseContentFromDiscriminatorValue,
   serializeBatchRequestBody,
 } from "./BatchItem";
 import { BatchResponseContent } from "./BatchResponseContent";
-import { ErrorMappings } from "@microsoft/kiota-abstractions/dist/es/src/requestAdapter";
-import { defaultUrlReplacementPairs } from "../utils/Constants";
 
 /**
  * -------------------------------------------------------------------------------------------
@@ -22,8 +21,7 @@ import { defaultUrlReplacementPairs } from "../utils/Constants";
  */
 
 /**
- * @interface
- * Signature represents key value pair object
+ * Represents the content of a batch request.
  */
 export class BatchRequestContent {
   /**
@@ -55,6 +53,13 @@ export class BatchRequestContent {
    */
   private readonly errorMappings: ErrorMappings | undefined;
 
+  /**
+   * Creates an instance of BatchRequestContent.
+   * @param {RequestAdapter} requestAdapter - The request adapter to be used for executing the requests.
+   * @param {ErrorMappings} errorMappings - The error mappings to be used while deserializing the response.
+   * @throws {Error} If the request adapter is undefined.
+   * @throws {Error} If the error mappings are undefined.
+   */
   constructor(requestAdapter: RequestAdapter, errorMappings: ErrorMappings) {
     this.requests = new Map<string, BatchItem>();
     if (!requestAdapter) {
@@ -199,55 +204,26 @@ export class BatchRequestContent {
 
   /**
    * @public
+   * Adds multiple requests to the batch request content
+   * @param {BatchItem[]} requests - The request value
+   */
+  public addRequests(requests: BatchItem[]) {
+    // loop and add this request
+    requests.forEach(request => {
+      this.addRequest(request);
+    });
+  }
+
+  /**
+   * @public
    * Receives a request information object, converts it and adds it to the batch request execution chain
    * @param requestInformation - The request information object
    * @param batchId - The batch id to be used for the request
    */
   public addBatchRequest(requestInformation: RequestInformation, batchId?: string): BatchItem {
-    const batchItem = this.toBatchItem(requestInformation, batchId);
+    const batchItem = convertRequestInformationToBatchItem(this.requestAdapter, requestInformation, batchId);
     this.addRequest(batchItem);
     return batchItem;
-  }
-
-  /**
-   * @private
-   * Converts the request information object to a batch item
-   * @param requestInformation - The request information object
-   * @param batchId - The batch id to be used for the request
-   */
-  private toBatchItem(requestInformation: RequestInformation, batchId?: string): BatchItem {
-    if (requestInformation.pathParameters && requestInformation.pathParameters.baseurl === undefined) {
-      requestInformation.pathParameters.baseurl = this.requestAdapter.baseUrl;
-    }
-
-    let uriString = requestInformation.URL;
-
-    Object.keys(defaultUrlReplacementPairs).forEach(replacementKey => {
-      uriString = uriString.replace(replacementKey, defaultUrlReplacementPairs[replacementKey]);
-    });
-
-    const content = requestInformation.content ? new TextDecoder().decode(requestInformation.content) : undefined;
-    let body: Map<string, any> | undefined;
-    if (content !== undefined) {
-      body = new Map<string, any>(Object.entries(JSON.parse(content) as { [s: string]: any }));
-    }
-
-    let headers: Record<string, any> | undefined;
-    if (headers !== undefined) {
-      headers = Object.fromEntries(requestInformation.headers.entries()) as unknown as Record<string, string>;
-    }
-
-    const url = uriString.replace(this.requestAdapter.baseUrl, "");
-
-    const method = requestInformation.httpMethod?.toString();
-
-    return {
-      id: batchId ?? createGuid(),
-      method: method!,
-      url,
-      headers,
-      body,
-    };
   }
 
   /**
@@ -255,7 +231,7 @@ export class BatchRequestContent {
    * Gets the content of the batch request
    * @returns The batch request collection
    */
-  public readonly getContent = (): BatchRequestCollection => {
+  public readonly getContent = (): BatchRequestBody => {
     const content = {
       requests: Array.from(this.requests.values()),
     };
@@ -287,7 +263,7 @@ export class BatchRequestContent {
 
     requestInformation.headers.add("Content-Type", "application/json");
 
-    const result = await this.requestAdapter.send<BatchResponseCollection>(
+    const result = await this.requestAdapter.send<BatchResponseBody>(
       requestInformation,
       createBatchResponseContentFromDiscriminatorValue,
       this.errorMappings,

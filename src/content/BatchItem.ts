@@ -18,7 +18,11 @@ import {
   ParseNode,
   SerializationWriter,
   createUntypedNodeFromDiscriminatorValue,
+  RequestInformation,
+  createGuid,
+  RequestAdapter,
 } from "@microsoft/kiota-abstractions";
+import { defaultUrlReplacementPairs } from "../utils/Constants";
 
 /**
  * @interface
@@ -48,7 +52,7 @@ export interface BatchResponse {
  * @interface
  * Signature representing Batch request body
  */
-export interface BatchRequestCollection {
+export interface BatchRequestBody {
   requests: BatchItem[];
 }
 
@@ -56,7 +60,7 @@ export interface BatchRequestCollection {
  * @interface
  * Signature representing Batch response body
  */
-export interface BatchResponseCollection {
+export interface BatchResponseBody {
   responses: BatchResponse[];
 }
 
@@ -67,7 +71,7 @@ export interface BatchResponseCollection {
  */
 export const serializeBatchRequestBody = (
   writer: SerializationWriter,
-  batchRequestBody: Partial<BatchRequestCollection> | undefined | null = {},
+  batchRequestBody: Partial<BatchRequestBody> | undefined | null = {},
 ): void => {
   if (batchRequestBody) {
     writer.writeCollectionOfObjectValues("requests", batchRequestBody.requests, serializeBatchItem);
@@ -88,6 +92,18 @@ export const serializeBatchItem = (
     writer.writeStringValue("method", batchRequestData.method);
     writer.writeStringValue("url", batchRequestData.url);
     writer.writeObjectValue("headers", batchRequestData.headers);
+    // get contentType from headers
+    // N:B watch out for text encoding as it might not be utf-8
+    const body = batchRequestData.body;
+    if (body) {
+      const contentType = batchRequestData.headers?.["Content-Type"];
+      if (contentType === "application/json") {
+        // convert body to json
+        writer.writeObjectValue("body", JSON.parse(new TextDecoder().decode(body)));
+      } else {
+        writer.writeByteArrayValue("body", body);
+      }
+    }
     writer.writeObjectValue("body", batchRequestData.body);
     writer.writeCollectionOfPrimitiveValues("dependsOn", batchRequestData.dependsOn);
   }
@@ -108,7 +124,7 @@ export const createBatchResponseContentFromDiscriminatorValue = (
  * @param batchResponseBody
  */
 export const deserializeIntoBatchResponseContent = (
-  batchResponseBody: Partial<BatchResponseCollection> | undefined = {},
+  batchResponseBody: Partial<BatchResponseBody> | undefined = {},
 ): Record<string, (node: ParseNode) => void> => {
   return {
     responses: n => {
@@ -147,5 +163,47 @@ export const deserializeIntoBatchResponse = (
     status: n => {
       batchResponse.status = n.getNumberValue();
     },
+  };
+};
+
+/**
+ * Converts a `RequestInformation` object to a `BatchItem`.
+ * @param {RequestAdapter} requestAdapter - The request adapter containing the base URL.
+ * @param {RequestInformation} requestInformation - The request information to convert.
+ * @param {string} [batchId] - Optional batch ID to use for the `BatchItem`.
+ * @returns {BatchItem} The converted `BatchItem`.
+ */
+export const convertRequestInformationToBatchItem = (
+  requestAdapter: RequestAdapter,
+  requestInformation: RequestInformation,
+  batchId?: string,
+): BatchItem => {
+  if (requestInformation.pathParameters && requestInformation.pathParameters.baseurl === undefined) {
+    requestInformation.pathParameters.baseurl = requestAdapter.baseUrl;
+  }
+
+  let uriString = requestInformation.URL;
+
+  Object.keys(defaultUrlReplacementPairs).forEach(replacementKey => {
+    uriString = uriString.replace(replacementKey, defaultUrlReplacementPairs[replacementKey]);
+  });
+
+  const body = requestInformation.content;
+
+  let headers: Record<string, any> | undefined;
+  if (headers !== undefined) {
+    headers = Object.fromEntries(requestInformation.headers.entries()) as unknown as Record<string, string>;
+  }
+
+  const url = uriString.replace(requestAdapter.baseUrl, "");
+
+  const method = requestInformation.httpMethod?.toString();
+
+  return {
+    id: batchId ?? createGuid(),
+    method: method!,
+    url,
+    headers,
+    body,
   };
 };
