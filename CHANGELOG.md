@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-preview.11](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.10...v1.0.0-preview.11) (2025-02-25)
+
+
+### Features
+
+* add page iterator ([c4d0bc9](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/c4d0bc9ddf9a02aa8ad8c75ef0e2b92380ca0e7e))
+
 ## [1.0.0-preview.10](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.9...v1.0.0-preview.10) (2025-02-13)
 
 

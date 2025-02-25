@@ -3,7 +3,7 @@
     "access": "public"
   },
   "name": "@microsoft/msgraph-sdk-core",
-  "version": "1.0.0-preview.10",
+  "version": "1.0.0-preview.11",
   "description": "Core functionalities for the Microsoft Graph JavaScript SDK",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
