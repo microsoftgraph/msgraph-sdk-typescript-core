@@ -8,7 +8,6 @@ import {
 } from "./BatchItem";
 import { BatchResponseContent } from "./BatchResponseContent";
 import { ErrorMappings } from "@microsoft/kiota-abstractions/dist/es/src/requestAdapter";
-import { createGraphErrorFromDiscriminatorValue } from "./GraphError";
 import { defaultUrlReplacementPairs } from "../utils/Constants";
 
 /**
@@ -56,7 +55,7 @@ export class BatchRequestContent {
    */
   private readonly errorMappings: ErrorMappings | undefined;
 
-  constructor(requestAdapter: RequestAdapter, errorMappings?: ErrorMappings) {
+  constructor(requestAdapter: RequestAdapter, errorMappings: ErrorMappings) {
     this.requests = new Map<string, BatchItem>();
     if (!requestAdapter) {
       const error = new Error("Request adapter is undefined, Please provide a valid request adapter");
@@ -64,6 +63,11 @@ export class BatchRequestContent {
       throw error;
     }
     this.requestAdapter = requestAdapter;
+    if (!errorMappings) {
+      const error = new Error("Error mappings are undefined, Please provide a valid error mappings");
+      error.name = "Invalid Error Mappings Error";
+      throw error;
+    }
     this.errorMappings = errorMappings;
   }
 
@@ -283,14 +287,10 @@ export class BatchRequestContent {
 
     requestInformation.headers.add("Content-Type", "application/json");
 
-    const errorMappings = this.errorMappings ?? {
-      XXX: parseNode => createGraphErrorFromDiscriminatorValue(parseNode),
-    };
-
     const result = await this.requestAdapter.send<BatchResponseCollection>(
       requestInformation,
       createBatchResponseContentFromDiscriminatorValue,
-      errorMappings,
+      this.errorMappings,
     );
 
     if (result === undefined) {
