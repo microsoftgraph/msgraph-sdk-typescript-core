@@ -62,12 +62,16 @@ export class UploadSlice<T extends Parsable> {
     const locations = headerOptions.getResponseHeaders().get("location");
 
     if (itemResponse) {
-      if (this.isUploadSessionResponse(itemResponse)) {
-        return itemResponse;
+      let sessionResponse = this.isUploadSessionResponse(itemResponse);
+      if (sessionResponse) {
+        return sessionResponse;
       }
       const { additionalData } = itemResponse as Partial<AdditionalDataHolder>;
-      if (additionalData && this.isUploadSessionResponse(additionalData)) {
-        return additionalData;
+      if (additionalData) {
+        sessionResponse = this.isUploadSessionResponse(additionalData);
+        if (sessionResponse) {
+          return sessionResponse;
+        }
       }
     }
 
