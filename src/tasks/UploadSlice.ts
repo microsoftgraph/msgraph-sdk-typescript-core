@@ -23,7 +23,9 @@ const binaryContentType = "application/octet-stream";
 
 /**
  * @class
- * Class for UploadSlice
+ * Represents a slice of a file to be uploaded.
+ *
+ * @template T - The type of the parsable object.
  */
 export class UploadSlice<T extends Parsable> {
   /**

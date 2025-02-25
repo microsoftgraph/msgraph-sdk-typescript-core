@@ -24,7 +24,7 @@ import { SeekableStreamReader } from "./SeekableStreamReader";
 /**
  * @interface
  * Signature to represent progress receiver
- * @property {number} progress - The progress value
+ * @property {number} progress - The progress value (This is the last uploaded byte)
  */
 export interface IProgress {
   report(progress: number): void;
@@ -140,11 +140,11 @@ export class LargeFileUploadTask<T extends Parsable> {
    * @throws {Error} If any of the required parameters are undefined or invalid.
    */
   constructor(
-    readonly requestAdapter: RequestAdapter,
-    readonly uploadSession: Parsable,
+    private readonly requestAdapter: RequestAdapter,
+    uploadSession: Parsable,
     uploadStream: ReadableStream<Uint8Array>,
-    readonly maxSliceSize = -1,
-    readonly parsableFactory: ParsableFactory<T>,
+    private readonly maxSliceSize = -1,
+    private readonly parsableFactory: ParsableFactory<T>,
     errorMappings: ErrorMappings,
   ) {
     if (!uploadSession) {
@@ -195,7 +195,7 @@ export class LargeFileUploadTask<T extends Parsable> {
     const sliceRequests = this.getUploadSliceRequests();
     for (const request of sliceRequests) {
       try {
-        const uploadResult = await this.uploadWithRetry(request);
+        const uploadResult = await request.uploadSlice();
         progress?.report(request.rangeEnd);
         const { itemResponse, location } = uploadResult as Partial<UploadResult<T>>;
         if (itemResponse || location) {
@@ -206,36 +206,6 @@ export class LargeFileUploadTask<T extends Parsable> {
       }
     }
     throw new Error("Upload failed");
-  }
-
-  /**
-   * Uploads a slice with retry logic.
-   *
-   * @param {UploadSlice<T>} uploadSlice - The upload slice to be uploaded.
-   * @param {number} [maxTries=3] - The maximum number of retry attempts.
-   * @returns {Promise<UploadResult<T> | UploadSession | undefined>} - The result of the upload.
-   * @throws {Error} If the maximum number of retries is reached.
-   */
-  private async uploadWithRetry(
-    uploadSlice: UploadSlice<T>,
-    maxTries = 3,
-  ): Promise<UploadResult<T> | UploadSession | undefined> {
-    let uploadTries = 0;
-    while (uploadTries < maxTries) {
-      try {
-        return await uploadSlice.uploadSlice();
-      } catch (e) {
-        console.error(e);
-      }
-      uploadTries++;
-
-      if (uploadTries < maxTries) {
-        // Exponential backoff
-        await this.sleep(2000 * (uploadTries + 1));
-      }
-    }
-
-    throw new Error("Max retries reached");
   }
 
   /**
@@ -268,7 +238,7 @@ export class LargeFileUploadTask<T extends Parsable> {
     );
 
     if (response) {
-      this.Session.expirationDateTime = response?.expirationDateTime;
+      this.Session.expirationDateTime = response.expirationDateTime;
       this.Session.nextExpectedRanges = response.nextExpectedRanges;
       if (response.uploadUrl) {
         this.Session.uploadUrl = response.uploadUrl;
@@ -285,7 +255,11 @@ export class LargeFileUploadTask<T extends Parsable> {
    * @returns {Promise<void>} A promise that resolves when the session is canceled.
    */
   public async deleteSession(): Promise<void> {
-    const requestInformation = new RequestInformation(HttpMethod.DELETE, this.Session.uploadUrl!);
+    const url = this.Session.uploadUrl;
+    if (!url) {
+      throw new Error("Upload url is invalid");
+    }
+    const requestInformation = new RequestInformation(HttpMethod.DELETE, url);
     await this.requestAdapter.sendNoResponseContent(requestInformation, this.errorMappings);
   }
 
@@ -306,16 +280,6 @@ export class LargeFileUploadTask<T extends Parsable> {
       odataType: odataType ?? null,
       uploadUrl: uploadUrl ?? null,
     };
-  }
-
-  /**
-   * Pauses execution for a specified number of milliseconds.
-   *
-   * @param {number} ms - The number of milliseconds to sleep.
-   * @returns {Promise<void>} A promise that resolves after the specified time.
-   */
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
