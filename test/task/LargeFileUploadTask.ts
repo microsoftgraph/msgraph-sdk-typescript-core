@@ -1,5 +1,5 @@
-import { assert, describe, expect, it } from "vitest";
-import { coreVersion, IProgress, LargeFileUploadTask } from "../../src";
+import { assert, describe, it } from "vitest";
+import { IProgress, LargeFileUploadTask, SeekableStreamReader } from "../../src";
 // @ts-ignore
 import { DummyRequestAdapter } from "../utils/DummyRequestAdapter";
 import { ErrorMappings, Parsable, ParseNode } from "@microsoft/kiota-abstractions";
@@ -67,7 +67,7 @@ describe("LargeFileUploadTask tests", () => {
       const largeFileUploadTask = new LargeFileUploadTask(
         adapter,
         session,
-        createSampleReadableStream,
+        createSampleReadableStream(),
         10,
         createPageCollectionFromDiscriminatorValue,
         errorMappings,
@@ -79,7 +79,7 @@ describe("LargeFileUploadTask tests", () => {
         new LargeFileUploadTask(
           adapter,
           {} as SampleResponse,
-          createSampleReadableStream,
+          createSampleReadableStream(),
           10,
           createPageCollectionFromDiscriminatorValue,
           errorMappings,
@@ -98,7 +98,7 @@ describe("LargeFileUploadTask tests", () => {
       const largeFileUploadTask = new LargeFileUploadTask(
         adapter,
         session,
-        createSampleReadableStream,
+        createSampleReadableStream(),
         5,
         createPageCollectionFromDiscriminatorValue,
         errorMappings,
@@ -121,8 +121,9 @@ describe("LargeFileUploadTask tests", () => {
 
       const decoder = new TextDecoder();
       let reconstructedString = "";
+      const seekableStream = new SeekableStreamReader(createSampleReadableStream());
       for (const slice of uploadSlices) {
-        const chunk = await (slice as any).readSection(createSampleReadableStream(), slice.rangeBegin, slice.rangeEnd);
+        const chunk = await seekableStream.readSection(slice.rangeBegin, slice.rangeEnd);
         console.log(slice.rangeBegin, slice.rangeEnd);
         console.log("chunk", decoder.decode(chunk));
         reconstructedString += decoder.decode(chunk);
@@ -139,7 +140,7 @@ describe("LargeFileUploadTask tests", () => {
       const largeFileUploadTask = new LargeFileUploadTask(
         adapter,
         session,
-        createSampleReadableStream,
+        createSampleReadableStream(),
         10,
         createPageCollectionFromDiscriminatorValue,
         errorMappings,
@@ -186,7 +187,7 @@ describe("LargeFileUploadTask tests", () => {
       const largeFileUploadTask = new LargeFileUploadTask(
         adapter,
         session,
-        createSampleReadableStream,
+        createSampleReadableStream(),
         10,
         createPageCollectionFromDiscriminatorValue,
         errorMappings,
@@ -209,7 +210,7 @@ describe("LargeFileUploadTask tests", () => {
       const largeFileUploadTask = new LargeFileUploadTask(
         adapter,
         session,
-        createSampleReadableStream,
+        createSampleReadableStream(),
         10,
         createPageCollectionFromDiscriminatorValue,
         errorMappings,
@@ -233,7 +234,7 @@ describe("LargeFileUploadTask tests", () => {
       const largeFileUploadTask = new LargeFileUploadTask(
         adapter,
         session,
-        createSampleReadableStream,
+        createSampleReadableStream(),
         10,
         createPageCollectionFromDiscriminatorValue,
         errorMappings,

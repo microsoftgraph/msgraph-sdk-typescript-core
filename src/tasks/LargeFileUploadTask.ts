@@ -19,6 +19,7 @@ import {
   HttpMethod,
 } from "@microsoft/kiota-abstractions";
 import { UploadSlice } from "./UploadSlice";
+import { SeekableStreamReader } from "./SeekableStreamReader";
 
 /**
  * @interface
@@ -116,6 +117,12 @@ export class LargeFileUploadTask<T extends Parsable> {
 
   /**
    * @private
+   * The seekable stream reader
+   */
+  seekableStreamReader: SeekableStreamReader;
+
+  /**
+   * @private
    * The upload session
    */
   Session: UploadSession;
@@ -125,7 +132,7 @@ export class LargeFileUploadTask<T extends Parsable> {
    *
    * @param {RequestAdapter} requestAdapter - The request adapter to use for making HTTP requests.
    * @param {Parsable} uploadSession - The upload session information.
-   * @param {ReadableStream<Uint8Array>} uploadStreamProvider - Returns an instance of an unconsumed new stream to be uploaded.
+   * @param {ReadableStream<Uint8Array>} uploadStream - Returns an instance of an unconsumed new stream to be uploaded.
    * @param {number} [maxSliceSize=-1] - The maximum size of each file slice to be uploaded.
    * @param {ParsableFactory<T>} parsableFactory - The factory to create parsable objects.
    * @param {ErrorMappings} [errorMappings] - error mappings.
@@ -135,7 +142,7 @@ export class LargeFileUploadTask<T extends Parsable> {
   constructor(
     readonly requestAdapter: RequestAdapter,
     readonly uploadSession: Parsable,
-    readonly uploadStreamProvider: () => ReadableStream<Uint8Array>,
+    uploadStream: ReadableStream<Uint8Array>,
     readonly maxSliceSize = -1,
     readonly parsableFactory: ParsableFactory<T>,
     errorMappings: ErrorMappings,
@@ -145,8 +152,8 @@ export class LargeFileUploadTask<T extends Parsable> {
       error.name = "Invalid Upload Session Error";
       throw error;
     }
-    if (!uploadStreamProvider) {
-      const error = new Error("Upload stream provider is undefined, Please provide a valid upload stream");
+    if (!uploadStream) {
+      const error = new Error("Upload stream is undefined, Please provide a valid upload stream");
       error.name = "Invalid Upload Stream Error";
       throw error;
     }
@@ -160,10 +167,17 @@ export class LargeFileUploadTask<T extends Parsable> {
       error.name = "Invalid Parsable Factory Error";
       throw error;
     }
+    if (uploadStream.locked) {
+      const error = new Error("Upload stream is locked, Please provide a valid upload stream");
+      error.name = "Invalid Upload Stream Error";
+      throw error;
+    }
     if (maxSliceSize <= 0) {
       this.maxSliceSize = DefaultSliceSize;
     }
     this.parsableFactory = parsableFactory;
+
+    this.seekableStreamReader = new SeekableStreamReader(uploadStream);
 
     this.Session = this.extractSessionInfo(uploadSession);
     this.rangesRemaining = this.getRangesRemaining(this.Session);
@@ -209,7 +223,7 @@ export class LargeFileUploadTask<T extends Parsable> {
     let uploadTries = 0;
     while (uploadTries < maxTries) {
       try {
-        return await uploadSlice.uploadSlice(this.uploadStreamProvider());
+        return await uploadSlice.uploadSlice();
       } catch (e) {
         console.error(e);
       }
@@ -326,6 +340,7 @@ export class LargeFileUploadTask<T extends Parsable> {
           range[1] + 1,
           this.parsableFactory,
           this.errorMappings,
+          this.seekableStreamReader,
         );
         uploadSlices.push(uploadRequest);
         currentRangeBegin += nextSliceSize;
