@@ -13,78 +13,67 @@ export class SeekableStreamReader {
   private reader: ReadableStreamDefaultReader<Uint8Array>;
   private cachedChunk?: Uint8Array | null;
   private cachedPosition = 0;
+  private cachedOffset = 0; // Track where we are within the cached chunk
 
   constructor(private stream: ReadableStream<Uint8Array>) {
-    // Get a reader from the underlying stream.
     this.reader = stream.getReader();
   }
 
-  /**
-   * Reads a section of the stream from the given start index up to (but not including) the end index.
-   * The method ensures that enough data is buffered; if not, it continues reading from the stream.
-   *
-   * @param start - The starting byte index.
-   * @param end - The ending byte index (non-inclusive).
-   * @returns A Promise that resolves with an ArrayBuffer containing the requested bytes.
-   */
   public async readSection(start: number, end: number): Promise<ArrayBuffer> {
-    if (start < 0 || end < start) {
-      throw new Error("Invalid start or end values.");
+    if (start < 0 || end <= start) {
+      throw new Error("Invalid range: start must be non-negative and end must be greater than start.");
     }
     if (start < this.cachedPosition) {
-      throw new Error("Cannot seek backwards");
+      throw new Error("Cannot seek backwards.");
     }
 
-    let position = this.cachedPosition; // current absolute position in the stream
     const chunks: Uint8Array[] = [];
     let totalLength = 0;
+    let position = this.cachedPosition;
 
-    try {
-      while (true) {
-        if (!this.cachedChunk) {
-          const { done, value } = await this.reader.read();
-          if (done) break;
-          if (!value) continue;
-
-          this.cachedChunk = value;
-        }
-        const chunk = this.cachedChunk;
-        const chunkLength = this.cachedChunk.byteLength;
-
-        // If the entire chunk is before our start, skip it.
-        if (position + chunkLength <= start) {
-          position += chunkLength;
-          continue;
-        }
-
-        // If we've already passed the end, we can stop reading.
-        this.cachedChunk = null;
-        if (position > end) break;
-
-        // Calculate the start index within the current chunk.
-        const startIndex = position < start ? start - position : 0;
-        // Calculate the end index within the current chunk.
-        // Since `end` is inclusive, we need to slice up to (end - position + 1).
-        let endIndex = chunkLength;
-        if (position + chunkLength - 1 > end) {
-          endIndex = end - position + 1;
-        }
-
-        const sliced = chunk.slice(startIndex, endIndex);
-        chunks.push(sliced);
-        totalLength += sliced.byteLength;
-
-        this.cachedChunk = chunk;
-
-        position += chunkLength;
-        // Stop reading if we've already reached beyond the desired range.
-        if (position > end) break;
+    while (position < end) {
+      if (!this.cachedChunk) {
+        const { done, value } = await this.reader.read();
+        if (done) break;
+        if (!value) continue;
+        this.cachedChunk = value;
+        this.cachedOffset = 0; // Reset the offset since it's a new chunk
       }
-    } finally {
-      this.reader.releaseLock();
+
+      const chunk = this.cachedChunk;
+      const chunkLength = chunk.byteLength;
+
+      // Skip chunks that are entirely before `start`
+      if (position + chunkLength - this.cachedOffset <= start) {
+        position += chunkLength - this.cachedOffset;
+        this.cachedChunk = null;
+        this.cachedOffset = 0;
+        continue;
+      }
+
+      // Calculate the section of the chunk to return
+      const startIndex = Math.max(0, start - position) + this.cachedOffset;
+      const endIndex = Math.min(chunkLength, end - position + this.cachedOffset);
+
+      const sliced = chunk.slice(startIndex, endIndex);
+      chunks.push(sliced);
+      totalLength += sliced.byteLength;
+
+      // Update position correctly
+      position += sliced.byteLength;
+
+      // Store remaining unread data for future reads
+      if (endIndex < chunkLength) {
+        this.cachedOffset = endIndex;
+      } else {
+        this.cachedChunk = null;
+        this.cachedOffset = 0;
+      }
     }
 
-    // Concatenate all collected chunks into one Uint8Array.
+    this.cachedPosition = position; // Ensure position is updated
+
+    // Combine collected chunks into a single buffer
     const result = new Uint8Array(totalLength);
     let offset = 0;
     for (const chunk of chunks) {
@@ -95,16 +84,12 @@ export class SeekableStreamReader {
     return result.buffer;
   }
 
-  /**
-   * Optional helper: resets the internal state to allow a new stream to be used.
-   * Note: this method clears any cached data.
-   *
-   * @param newStream - A new ReadableStream of Uint8Array.
-   */
-  public reset(newStream: ReadableStream<Uint8Array>): void {
+  public async reset(newStream: ReadableStream<Uint8Array>) {
+    await this.reader.cancel(); // Ensure the old reader is closed before replacing
     this.stream = newStream;
     this.reader = newStream.getReader();
     this.cachedChunk = null;
     this.cachedPosition = 0;
+    this.cachedOffset = 0;
   }
 }
