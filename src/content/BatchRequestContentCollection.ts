@@ -11,13 +11,14 @@
 
 import { ErrorMappings, RequestAdapter, RequestInformation } from "@microsoft/kiota-abstractions";
 import { BatchItem, convertRequestInformationToBatchItem } from "./BatchItem";
-import { BatchResponseContent } from "./BatchResponseContent";
 import { BatchRequestContent } from "./BatchRequestContent";
+import { BatchRequestBuilder } from "./BatchRequestBuilder";
+import { BatchResponseContentCollection } from "./BatchResponseContentCollection";
 
 /**
  * The default limit for the number of requests in a single batch.
  */
-const DEFAULT_BATCH_LIMIT = 4;
+const DEFAULT_BATCH_LIMIT = 20;
 
 /**
  * Represents the content of a batch request.
@@ -85,31 +86,24 @@ export class BatchRequestContentCollection {
    * @returns {Promise<BatchResponseContent | undefined>} A promise that resolves to the batch response content or undefined.
    * @throws {Error} If the batch limit is exceeded.
    */
-  public async postAsync(): Promise<BatchResponseContent | undefined> {
-    // chuck the batch requests into smaller batches
-    const batches = this.chunkArray(this.batchRequests, 19);
+  public async postAsync(): Promise<BatchResponseContentCollection | undefined> {
+    const requestBuilder = new BatchRequestBuilder(this.requestAdapter, this.errorMappings);
+    return await requestBuilder.postBatchRequestContentCollectionAsync(this);
+  }
 
-    if (batches.length > this.batchLimit) {
-      const error = new Error(`Batch limit exceeded, Please provide a batch limit of ${this.batchLimit} or less`);
-      error.name = "Batch Limit Exceeded Error";
-      throw error;
-    }
-
-    // loop over batches and create batch request body
-    const batchResponseBody: BatchResponseContent[] = [];
+  /**
+   * @public
+   * Returns the batch request content
+   */
+  public getBatchResponseContents(): BatchRequestContent[] {
+    const batches = this.chunkArray(this.batchRequests, this.batchLimit);
+    const batchRequestContent: BatchRequestContent[] = [];
     for (const batch of batches) {
       const requestContent = new BatchRequestContent(this.requestAdapter, this.errorMappings);
       requestContent.addRequests(batch);
-      const response = await requestContent.postAsync();
-      if (response) {
-        batchResponseBody.push(response);
-      }
+      batchRequestContent.push(requestContent);
     }
-
-    const mergedResponses = batchResponseBody.flatMap(batchResponse =>
-      Array.from(batchResponse.getResponsesIterator(), ([, value]) => value),
-    );
-    return new BatchResponseContent({ responses: mergedResponses });
+    return batchRequestContent;
   }
 
   /**
@@ -122,6 +116,18 @@ export class BatchRequestContentCollection {
     const batchItem = convertRequestInformationToBatchItem(this.requestAdapter, requestInformation, batchId);
     this.batchRequests.push(batchItem);
     return batchItem;
+  }
+
+  /**
+   * @public
+   * Adds multiple requests to the batch request content
+   * @param {BatchItem[]} requests - The request value
+   */
+  public addRequests(requests: BatchItem[]) {
+    // loop and add this request
+    requests.forEach(request => {
+      this.batchRequests.push(request);
+    });
   }
 
   /**

@@ -1,13 +1,7 @@
-import { RequestAdapter, RequestInformation, HttpMethod, ErrorMappings } from "@microsoft/kiota-abstractions";
-import {
-  BatchItem,
-  BatchRequestBody,
-  BatchResponseBody,
-  convertRequestInformationToBatchItem,
-  createBatchResponseContentFromDiscriminatorValue,
-  serializeBatchRequestBody,
-} from "./BatchItem";
+import { RequestAdapter, RequestInformation, ErrorMappings } from "@microsoft/kiota-abstractions";
+import { BatchItem, BatchRequestBody, convertRequestInformationToBatchItem } from "./BatchItem";
 import { BatchResponseContent } from "./BatchResponseContent";
+import { BatchRequestBuilder } from "./BatchRequestBuilder";
 
 /**
  * -------------------------------------------------------------------------------------------
@@ -51,7 +45,7 @@ export class BatchRequestContent {
    * @static
    * Error mappings to be used while deserializing the response
    */
-  private readonly errorMappings: ErrorMappings | undefined;
+  private readonly errorMappings: ErrorMappings;
 
   /**
    * Creates an instance of BatchRequestContent.
@@ -249,30 +243,7 @@ export class BatchRequestContent {
    * Executes the batch request
    */
   public async postAsync(): Promise<BatchResponseContent | undefined> {
-    const requestInformation = new RequestInformation();
-    requestInformation.httpMethod = HttpMethod.POST;
-    requestInformation.urlTemplate = "{+baseurl}/$batch";
-
-    const content = this.getContent();
-    requestInformation.setContentFromParsable(
-      this.requestAdapter,
-      "application/json",
-      content,
-      serializeBatchRequestBody,
-    );
-
-    requestInformation.headers.add("Content-Type", "application/json");
-
-    const result = await this.requestAdapter.send<BatchResponseBody>(
-      requestInformation,
-      createBatchResponseContentFromDiscriminatorValue,
-      this.errorMappings,
-    );
-
-    if (result === undefined) {
-      return undefined;
-    } else {
-      return new BatchResponseContent(result);
-    }
+    const requestBuilder = new BatchRequestBuilder(this.requestAdapter, this.errorMappings);
+    return await requestBuilder.postBatchResponseContentAsync(this);
   }
 }

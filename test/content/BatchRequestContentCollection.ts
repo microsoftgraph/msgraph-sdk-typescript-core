@@ -36,22 +36,4 @@ describe("BatchRequestContentCollection tests", () => {
       assert.equal(batchItem.url, requestInfo.URL);
     });
   });
-  describe("postAsync", () => {
-    it("Should throw error on max number of items", async () => {
-      const requestContentCollection = new BatchRequestContentCollection(adapter, errorMappings, 2);
-
-      // create a loop of 50
-      for (let i = 0; i < 50; i++) {
-        const requestInfo = new RequestInformation(HttpMethod.GET, "{+baseurl}/me");
-        requestContentCollection.addBatchRequest(requestInfo);
-      }
-
-      try {
-        await requestContentCollection.postAsync();
-        assert.fail("Should have thrown an error");
-      } catch (error: any) {
-        assert.equal(error.message, "Batch limit exceeded, Please provide a batch limit of 2 or less");
-      }
-    });
-  });
 });

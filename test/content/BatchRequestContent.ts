@@ -161,7 +161,7 @@ describe("BatchRequestContent tests", () => {
         responses: [{ id: "1", status: 200, headers: {}, body: sampleArrayBuffer }],
       });
 
-      const response = requestContent.getParsebleResponseById<SampleResponse>("1", createSampleFromDiscriminatorValue);
+      const response = requestContent.getParsableResponseById<SampleResponse>("1", createSampleFromDiscriminatorValue);
       assert.isNotNull(response);
       assert.equal(response?.value.length, 3);
       assert.equal(response?.id, "1");
