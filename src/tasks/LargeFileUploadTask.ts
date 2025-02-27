@@ -292,13 +292,17 @@ export class LargeFileUploadTask<T extends Parsable> {
     const uploadSlices: UploadSlice<T>[] = [];
     const rangesRemaining = this.rangesRemaining;
     const session = this.Session;
+    const uploadUrl = session.uploadUrl;
+    if (!uploadUrl) {
+      throw new Error("Upload URL is a required parameter.");
+    }
     rangesRemaining.forEach(range => {
       let currentRangeBegin = range[0];
       while (currentRangeBegin <= range[1]) {
         const nextSliceSize = this.nextSliceSize(currentRangeBegin, range[1]);
         const uploadRequest = new UploadSlice<T>(
           this.requestAdapter,
-          session.uploadUrl!,
+          uploadUrl,
           currentRangeBegin,
           currentRangeBegin + nextSliceSize - 1,
           range[1] + 1,
@@ -335,10 +339,14 @@ export class LargeFileUploadTask<T extends Parsable> {
     // Sample: ["12345-55232","77829-99375"]
     // Also, second number in range can be blank, which means 'until the end'
     const ranges: number[][] = [];
-    uploadSession.nextExpectedRanges?.forEach(rangeString => {
-      const rangeArray = rangeString.split("-");
-      ranges.push([parseInt(rangeArray[0], 10), parseInt(rangeArray[1], 10)]);
-    });
+    if (uploadSession.nextExpectedRanges) {
+      ranges.push(
+        ...uploadSession.nextExpectedRanges.map(rangeString => {
+          const rangeArray = rangeString.split("-");
+          return [parseInt(rangeArray[0], 10), parseInt(rangeArray[1], 10)];
+        }),
+      );
+    }
     return ranges;
   }
 }

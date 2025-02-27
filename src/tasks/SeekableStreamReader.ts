@@ -12,7 +12,7 @@
  * This class allows reading specific sections of a stream without seeking backwards.
  */
 export class SeekableStreamReader {
-  private reader: ReadableStreamDefaultReader<Uint8Array>;
+  private readonly reader: ReadableStreamDefaultReader<Uint8Array>;
   private cachedChunk?: Uint8Array | null;
   private cachedPosition = 0;
   private cachedOffset = 0; // Track where we are within the cached chunk
@@ -21,7 +21,7 @@ export class SeekableStreamReader {
    * Creates an instance of SeekableStreamReader.
    * @param {ReadableStream<Uint8Array>} stream - The readable stream to read from.
    */
-  constructor(private stream: ReadableStream<Uint8Array>) {
+  constructor(private readonly stream: ReadableStream<Uint8Array>) {
     this.reader = stream.getReader();
   }
 
@@ -100,20 +100,5 @@ export class SeekableStreamReader {
     }
 
     return result.buffer;
-  }
-
-  /**
-   * Resets the reader with a new stream.
-   *
-   * @param {ReadableStream<Uint8Array>} newStream - The new readable stream to read from.
-   * @returns {Promise<void>} A promise that resolves when the reader has been reset.
-   */
-  public async reset(newStream: ReadableStream<Uint8Array>) {
-    await this.reader.cancel(); // Ensure the old reader is closed before replacing
-    this.stream = newStream;
-    this.reader = newStream.getReader();
-    this.cachedChunk = null;
-    this.cachedPosition = 0;
-    this.cachedOffset = 0;
   }
 }
