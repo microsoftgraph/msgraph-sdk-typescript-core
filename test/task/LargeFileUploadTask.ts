@@ -124,8 +124,6 @@ describe("LargeFileUploadTask tests", () => {
       const seekableStream = new SeekableStreamReader(createSampleReadableStream());
       for (const slice of uploadSlices) {
         const chunk = await seekableStream.readSection(slice.rangeBegin, slice.rangeEnd);
-        console.log(slice.rangeBegin, slice.rangeEnd);
-        console.log("chunk", decoder.decode(chunk));
         reconstructedString += decoder.decode(chunk);
       }
       assert.equal(reconstructedString, "This is a 24-byte string", "Reconstructed string should match the original");

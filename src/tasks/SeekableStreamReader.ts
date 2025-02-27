@@ -71,7 +71,7 @@ export class SeekableStreamReader {
 
       // Calculate the section of the chunk to return
       const startIndex = Math.max(0, start - position - 1) + this.cachedOffset;
-      const endIndex = Math.min(chunkLength, end - position + this.cachedOffset);
+      const endIndex = Math.min(chunkLength, end - position + this.cachedOffset + 1);
 
       const sliced = chunk.slice(startIndex, endIndex);
       chunks.push(sliced);

@@ -40,6 +40,6 @@ describe("SeekableStreamReader tests", () => {
   });
 });
 
-const veryLongRandomText = "This is a very long text that will be used to test the SeekableStreamReader class. ".repeat(
+const veryLongRandomText = "This is a very long text that will be used to test the SeekableStreamReader class.".repeat(
   20,
 ); //.split('').sort(() => 0.5 - Math.random()).join('');
