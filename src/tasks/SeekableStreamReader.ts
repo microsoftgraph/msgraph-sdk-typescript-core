@@ -6,8 +6,10 @@
  */
 
 /**
- * @class
+ *  @class
+ *
  * A class that provides seekable read access to a `ReadableStream` of `Uint8Array`.
+ * This class allows reading specific sections of a stream without seeking backwards.
  */
 export class SeekableStreamReader {
   private reader: ReadableStreamDefaultReader<Uint8Array>;
@@ -15,10 +17,26 @@ export class SeekableStreamReader {
   private cachedPosition = 0;
   private cachedOffset = 0; // Track where we are within the cached chunk
 
+  /**
+   * Creates an instance of SeekableStreamReader.
+   * @param {ReadableStream<Uint8Array>} stream - The readable stream to read from.
+   */
   constructor(private stream: ReadableStream<Uint8Array>) {
     this.reader = stream.getReader();
   }
 
+  /**
+   * Reads a section of the stream from the specified start position to the end position.
+   *
+   * This method reads data from the stream starting at the `start` position and ending at the `end` position.
+   * It ensures that the read operation does not seek backwards and handles chunked reading from the stream.
+   * The read data is collected into a single `ArrayBuffer` and returned.
+   *
+   * @param {number} start - The starting position of the section to read. Must be non-negative.
+   * @param {number} end - The ending position of the section to read. Must be greater than the start position.
+   * @returns {Promise<ArrayBuffer>} A promise that resolves to an `ArrayBuffer` containing the read section.
+   * @throws {Error} If the start position is negative, the end position is not greater than the start position, or if seeking backwards.
+   */
   public async readSection(start: number, end: number): Promise<ArrayBuffer> {
     if (start < 0 || end <= start) {
       throw new Error("Invalid range: start must be non-negative and end must be greater than start.");
@@ -84,6 +102,12 @@ export class SeekableStreamReader {
     return result.buffer;
   }
 
+  /**
+   * Resets the reader with a new stream.
+   *
+   * @param {ReadableStream<Uint8Array>} newStream - The new readable stream to read from.
+   * @returns {Promise<void>} A promise that resolves when the reader has been reset.
+   */
   public async reset(newStream: ReadableStream<Uint8Array>) {
     await this.reader.cancel(); // Ensure the old reader is closed before replacing
     this.stream = newStream;
