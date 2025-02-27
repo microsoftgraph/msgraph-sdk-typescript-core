@@ -28,7 +28,7 @@ import { defaultUrlReplacementPairs } from "../utils/Constants";
  * @interface
  * Signature represents payload structure for batch request and response
  */
-export interface BatchItem {
+export interface BatchRequestStep {
   readonly id: string;
   method: string;
   url: string;
@@ -53,7 +53,7 @@ export interface BatchResponse {
  * Signature representing Batch request body
  */
 export interface BatchRequestBody {
-  requests: BatchItem[];
+  requests: BatchRequestStep[];
 }
 
 /**
@@ -85,7 +85,7 @@ export const serializeBatchRequestBody = (
  */
 export const serializeBatchItem = (
   writer: SerializationWriter,
-  batchRequestData: Partial<BatchItem> | undefined | null = {},
+  batchRequestData: Partial<BatchRequestStep> | undefined | null = {},
 ): void => {
   if (batchRequestData) {
     writer.writeStringValue("id", batchRequestData.id);
@@ -133,7 +133,7 @@ export const deserializeIntoBatchResponseContent = (
 };
 
 /**
- * BatchItem ParsableFactory
+ * BatchRequestStep ParsableFactory
  * @param _parseNode
  */
 export const createBatchResponseFromDiscriminatorValue = (
@@ -166,17 +166,17 @@ export const deserializeIntoBatchResponse = (
 };
 
 /**
- * Converts a `RequestInformation` object to a `BatchItem`.
+ * Converts a `RequestInformation` object to a `BatchRequestStep`.
  * @param {RequestAdapter} requestAdapter - The request adapter containing the base URL.
  * @param {RequestInformation} requestInformation - The request information to convert.
- * @param {string} [batchId] - Optional batch ID to use for the `BatchItem`.
- * @returns {BatchItem} The converted `BatchItem`.
+ * @param {string} [batchId] - Optional batch ID to use for the `BatchRequestStep`.
+ * @returns {BatchRequestStep} The converted `BatchRequestStep`.
  */
 export const convertRequestInformationToBatchItem = (
   requestAdapter: RequestAdapter,
   requestInformation: RequestInformation,
   batchId?: string,
-): BatchItem => {
+): BatchRequestStep => {
   if (requestInformation.pathParameters && requestInformation.pathParameters.baseurl === undefined) {
     requestInformation.pathParameters.baseurl = requestAdapter.baseUrl;
   }

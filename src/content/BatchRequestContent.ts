@@ -1,5 +1,5 @@
 import { RequestAdapter, RequestInformation, ErrorMappings } from "@microsoft/kiota-abstractions";
-import { BatchItem, BatchRequestBody, convertRequestInformationToBatchItem } from "./BatchItem";
+import { BatchRequestStep, BatchRequestBody, convertRequestInformationToBatchItem } from "./BatchRequestStep";
 import { BatchResponseContent } from "./BatchResponseContent";
 import { BatchRequestBuilder } from "./BatchRequestBuilder";
 
@@ -31,7 +31,7 @@ export class BatchRequestContent {
    * @public
    * To keep track of requests, key will be id of the request and value will be the request json
    */
-  public requests: Map<string, BatchItem>;
+  public requests: Map<string, BatchRequestStep>;
 
   /**
    * @private
@@ -55,7 +55,7 @@ export class BatchRequestContent {
    * @throws {Error} If the error mappings are undefined.
    */
   constructor(requestAdapter: RequestAdapter, errorMappings: ErrorMappings) {
-    this.requests = new Map<string, BatchItem>();
+    this.requests = new Map<string, BatchRequestStep>();
     if (!requestAdapter) {
       const error = new Error("Request adapter is undefined, Please provide a valid request adapter");
       error.name = "Invalid Request Adapter Error";
@@ -86,8 +86,8 @@ export class BatchRequestContent {
    * @param {Map<string, BatchRequestStep>} requests - The map of requests.
    * @returns The boolean indicating the validation status
    */
-  private static validateDependencies(requests: Map<string, BatchItem>): boolean {
-    const isParallel = (reqs: Map<string, BatchItem>): boolean => {
+  private static validateDependencies(requests: Map<string, BatchRequestStep>): boolean {
+    const isParallel = (reqs: Map<string, BatchRequestStep>): boolean => {
       const iterator = reqs.entries();
       let cur = iterator.next();
       while (!cur.done) {
@@ -99,18 +99,18 @@ export class BatchRequestContent {
       }
       return true;
     };
-    const isSerial = (reqs: Map<string, BatchItem>): boolean => {
+    const isSerial = (reqs: Map<string, BatchRequestStep>): boolean => {
       const iterator = reqs.entries();
       let cur = iterator.next();
       if (cur.done || cur.value === undefined) return false;
-      const firstRequest: BatchItem = cur.value[1];
+      const firstRequest: BatchRequestStep = cur.value[1];
       if (firstRequest.dependsOn !== undefined && firstRequest.dependsOn.length > 0) {
         return false;
       }
       let prev = cur;
       cur = iterator.next();
       while (!cur.done) {
-        const curReq: BatchItem = cur.value[1];
+        const curReq: BatchRequestStep = cur.value[1];
         if (
           curReq.dependsOn === undefined ||
           curReq.dependsOn.length !== 1 ||
@@ -123,11 +123,11 @@ export class BatchRequestContent {
       }
       return true;
     };
-    const isSame = (reqs: Map<string, BatchItem>): boolean => {
+    const isSame = (reqs: Map<string, BatchRequestStep>): boolean => {
       const iterator = reqs.entries();
       let cur = iterator.next();
       if (cur.done || cur.value === undefined) return false;
-      const firstRequest: BatchItem = cur.value[1];
+      const firstRequest: BatchRequestStep = cur.value[1];
       let dependencyId: string;
       if (firstRequest.dependsOn === undefined || firstRequest.dependsOn.length === 0) {
         dependencyId = firstRequest.id;
@@ -172,10 +172,10 @@ export class BatchRequestContent {
   /**
    * @public
    * Adds a request to the batch request content
-   * @param {BatchItem} request - The request value
+   * @param {BatchRequestStep} request - The request value
    * @returns The id of the added request
    */
-  private addRequest(request: BatchItem): string {
+  private addRequest(request: BatchRequestStep): string {
     const limit = BatchRequestContent.requestLimit;
     if (request.id === "") {
       const error = new Error(`Id for a request is empty, Please provide an unique id`);
@@ -199,9 +199,9 @@ export class BatchRequestContent {
   /**
    * @public
    * Adds multiple requests to the batch request content
-   * @param {BatchItem[]} requests - The request value
+   * @param {BatchRequestStep[]} requests - The request value
    */
-  public addRequests(requests: BatchItem[]) {
+  public addRequests(requests: BatchRequestStep[]) {
     // loop and add this request
     requests.forEach(request => {
       this.addRequest(request);
@@ -214,7 +214,7 @@ export class BatchRequestContent {
    * @param requestInformation - The request information object
    * @param batchId - The batch id to be used for the request
    */
-  public addBatchRequest(requestInformation: RequestInformation, batchId?: string): BatchItem {
+  public addBatchRequest(requestInformation: RequestInformation, batchId?: string): BatchRequestStep {
     const batchItem = convertRequestInformationToBatchItem(this.requestAdapter, requestInformation, batchId);
     this.addRequest(batchItem);
     return batchItem;

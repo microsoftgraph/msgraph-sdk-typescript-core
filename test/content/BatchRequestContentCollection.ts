@@ -31,7 +31,7 @@ describe("BatchRequestContentCollection tests", () => {
       assert.isNotNull(batchItem);
       assert.isDefined(batchItem.id);
       assert.isTrue(batchItem.id.length > 0);
-      assert.equal(requestContentCollection.batchRequests.length, 1);
+      assert.equal(requestContentCollection.batchRequestSteps.length, 1);
       assert.equal(batchItem.method, requestInfo.httpMethod?.toString());
       assert.equal(batchItem.url, requestInfo.URL);
     });

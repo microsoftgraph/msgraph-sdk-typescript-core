@@ -10,7 +10,7 @@
  */
 
 import { BatchResponseContent } from "./BatchResponseContent";
-import { BatchResponse } from "./BatchItem";
+import { BatchResponse } from "./BatchRequestStep";
 import { deserializeFromJson, Parsable, ParsableFactory } from "@microsoft/kiota-abstractions";
 
 /**

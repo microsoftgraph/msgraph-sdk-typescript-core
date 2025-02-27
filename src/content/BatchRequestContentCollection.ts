@@ -10,7 +10,7 @@
  */
 
 import { ErrorMappings, RequestAdapter, RequestInformation } from "@microsoft/kiota-abstractions";
-import { BatchItem, convertRequestInformationToBatchItem } from "./BatchItem";
+import { BatchRequestStep, convertRequestInformationToBatchItem } from "./BatchRequestStep";
 import { BatchRequestContent } from "./BatchRequestContent";
 import { BatchRequestBuilder } from "./BatchRequestBuilder";
 import { BatchResponseContentCollection } from "./BatchResponseContentCollection";
@@ -50,7 +50,7 @@ export class BatchRequestContentCollection {
    * @static
    * The list of requests to be sent in the batch request
    */
-  public readonly batchRequests: BatchItem[] = [];
+  public readonly batchRequestSteps: BatchRequestStep[] = [];
 
   /**
    * @public
@@ -96,7 +96,7 @@ export class BatchRequestContentCollection {
    * Returns the batch request content
    */
   public getBatchResponseContents(): BatchRequestContent[] {
-    const batches = this.chunkArray(this.batchRequests, this.batchLimit);
+    const batches = this.chunkArray(this.batchRequestSteps, this.batchLimit);
     const batchRequestContent: BatchRequestContent[] = [];
     for (const batch of batches) {
       const requestContent = new BatchRequestContent(this.requestAdapter, this.errorMappings);
@@ -112,21 +112,21 @@ export class BatchRequestContentCollection {
    * @param requestInformation - The request information object
    * @param batchId - The batch id to be used for the request
    */
-  public addBatchRequest(requestInformation: RequestInformation, batchId?: string): BatchItem {
+  public addBatchRequest(requestInformation: RequestInformation, batchId?: string): BatchRequestStep {
     const batchItem = convertRequestInformationToBatchItem(this.requestAdapter, requestInformation, batchId);
-    this.batchRequests.push(batchItem);
+    this.batchRequestSteps.push(batchItem);
     return batchItem;
   }
 
   /**
    * @public
    * Adds multiple requests to the batch request content
-   * @param {BatchItem[]} requests - The request value
+   * @param {BatchRequestStep[]} requests - The request value
    */
-  public addRequests(requests: BatchItem[]) {
+  public addRequests(requests: BatchRequestStep[]) {
     // loop and add this request
     requests.forEach(request => {
-      this.batchRequests.push(request);
+      this.batchRequestSteps.push(request);
     });
   }
 

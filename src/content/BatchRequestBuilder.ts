@@ -3,7 +3,7 @@ import {
   BatchResponseBody,
   createBatchResponseContentFromDiscriminatorValue,
   serializeBatchRequestBody,
-} from "./BatchItem";
+} from "./BatchRequestStep";
 import { BatchResponseContent } from "./BatchResponseContent";
 import { BatchRequestContent } from "./BatchRequestContent";
 import { BatchRequestContentCollection } from "./BatchRequestContentCollection";
