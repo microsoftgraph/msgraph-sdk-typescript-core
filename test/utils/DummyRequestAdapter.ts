@@ -46,13 +46,18 @@ export class DummyRequestAdapter implements RequestAdapter {
   }
 
   // set a fake response
-  setResponse(response: any): void {
-    this.response.push(response);
+  setResponse(...responses: any): void {
+    this.response.push(...responses);
   }
 
   // get requests
   getRequests(): RequestInformation[] {
     return this.requests;
+  }
+
+  resetAdapter(): void {
+    this.requests = [];
+    this.response = [];
   }
 
   convertToNativeRequest<T>(requestInfo: RequestInformation): Promise<T> {
