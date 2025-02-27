@@ -22,7 +22,7 @@ describe("SeekableStreamReader tests", () => {
     // split the stream into pairs 20 pairs of start and end
     const pairs = [];
     const size = new TextEncoder().encode(veryLongRandomText).length;
-    const units = 3;
+    const units = 4;
 
     const batchSize = Math.round(size / units);
     for (let i = 0; i < value.length; i += batchSize) {
@@ -41,5 +41,5 @@ describe("SeekableStreamReader tests", () => {
 });
 
 const veryLongRandomText = "This is a very long text that will be used to test the SeekableStreamReader class. ".repeat(
-  6,
+  20,
 ); //.split('').sort(() => 0.5 - Math.random()).join('');
