@@ -60,7 +60,7 @@ export class UploadSlice<T extends Parsable> {
     const data = await this.seekableStreamReader.readSection(this.rangeBegin, this.rangeEnd);
     const requestInformation = new RequestInformation(HttpMethod.PUT, this.sessionUrl);
     requestInformation.headers = new Headers([
-      ["Content-Range", new Set([`bytes ${this.rangeBegin}-${this.rangeEnd - 1}/${this.totalSessionLength}`])],
+      ["Content-Range", new Set([`bytes ${this.rangeBegin}-${this.rangeEnd}/${this.totalSessionLength}`])],
       ["Content-Length", new Set([`${this.rangeEnd - this.rangeBegin}`])],
     ]);
     requestInformation.setStreamContent(data, binaryContentType);

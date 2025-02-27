@@ -104,26 +104,70 @@ describe("LargeFileUploadTask tests", () => {
         errorMappings,
       );
 
-      // Accessing the private method using bracket notation
-      const uploadSlices = (largeFileUploadTask as any)["getUploadSliceRequests"]() as UploadSlice<SampleResponse>[];
-      // cast the arrays to UploadSlice
-      assert.equal(uploadSlices.length, 5);
+      adapter.setResponse(
+        {
+          nextExpectedRanges: ["10-19"],
+          expirationDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          uploadUrl: "https://example.com/upload",
+        },
+        {
+          nextExpectedRanges: ["10-19"],
+          expirationDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          uploadUrl: "https://example.com/upload",
+        },
+        {
+          nextExpectedRanges: ["10-19"],
+          expirationDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          uploadUrl: "https://example.com/upload",
+        },
+        {
+          nextExpectedRanges: ["22-23"],
+          expirationDateTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          uploadUrl: "https://example.com/upload",
+        },
+        {
+          name: "Valid",
+        },
+      );
 
-      uploadSlices.forEach(slice => {
-        assert.isAtMost(slice.rangeEnd - slice.rangeBegin + 1, 5, "Slice size should not be larger than 5");
+      await largeFileUploadTask.upload();
+
+      // get all the request information from the adapter and rebuild the slice start and stop from the header
+      const requests = adapter.getRequests();
+
+      // get Content-Range and build start and end byte
+      const pairs: [number, number][] = requests.map(request => {
+        const ranges = request.headers.get("Content-Range");
+        if (!ranges) {
+          throw new Error("Content-Range header is missing");
+        }
+        const rangeValue = ranges.values().next().value;
+        if (!rangeValue) {
+          throw new Error("Content-Range value is missing");
+        }
+        const range = rangeValue.split(" ")[1].split("/")[0];
+        const [start, end] = range.split("-").map(Number);
+        return [start, end];
       });
-      for (let i = 0; i < uploadSlices.length - 1; i++) {
-        assert.isTrue(
-          uploadSlices[i].rangeEnd < uploadSlices[i + 1].rangeBegin,
-          "Slices should be in order from largest to smallest",
-        );
+
+      // cast the arrays to UploadSlice
+      assert.equal(pairs.length, 5);
+
+      pairs.forEach(slice => {
+        const [rangeBegin, rangeEnd] = slice;
+        assert.isAtMost(rangeEnd - rangeBegin + 1, 5, "Slice size should not be larger than 5");
+      });
+
+      for (let i = 0; i < pairs.length - 1; i++) {
+        assert.isTrue(pairs[i][1] < pairs[i + 1][0], "Slices should be in order from largest to smallest");
       }
 
       const decoder = new TextDecoder();
       let reconstructedString = "";
       const seekableStream = new SeekableStreamReader(createSampleReadableStream());
-      for (const slice of uploadSlices) {
-        const chunk = await seekableStream.readSection(slice.rangeBegin, slice.rangeEnd);
+      for (let i = 0; i < pairs.length; i++) {
+        const [rangeBegin, rangeEnd] = pairs[i];
+        const chunk = await seekableStream.readSection(rangeBegin, rangeEnd);
         reconstructedString += decoder.decode(chunk);
       }
       assert.equal(reconstructedString, "This is a 24-byte string", "Reconstructed string should match the original");

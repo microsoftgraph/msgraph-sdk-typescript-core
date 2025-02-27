@@ -46,8 +46,8 @@ export class DummyRequestAdapter implements RequestAdapter {
   }
 
   // set a fake response
-  setResponse(response: any): void {
-    this.response.push(response);
+  setResponse(...responses: any): void {
+    this.response.push(...responses);
   }
 
   // get requests

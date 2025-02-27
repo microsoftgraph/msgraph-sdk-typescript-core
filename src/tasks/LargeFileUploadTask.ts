@@ -192,17 +192,31 @@ export class LargeFileUploadTask<T extends Parsable> {
    * @throws {Error} If the upload fails.
    */
   public async upload(progress?: IProgress): Promise<UploadResult<T>> {
-    const sliceRequests = this.getUploadSliceRequests();
-    for (const request of sliceRequests) {
-      try {
-        const uploadResult = await request.uploadSlice();
-        progress?.report(request.rangeEnd);
+    const uploadUrl = this.Session.uploadUrl;
+    if (!uploadUrl) {
+      throw new Error("Upload URL is a required parameter.");
+    }
+    for (const range of this.rangesRemaining) {
+      let currentRangeBegin = range[0];
+      while (currentRangeBegin <= range[1]) {
+        const nextSliceSize = this.nextSliceSize(currentRangeBegin, range[1]);
+        const uploadRequest = new UploadSlice<T>(
+          this.requestAdapter,
+          uploadUrl,
+          currentRangeBegin,
+          currentRangeBegin + nextSliceSize - 1,
+          range[1] + 1,
+          this.parsableFactory,
+          this.errorMappings,
+          this.seekableStreamReader,
+        );
+        const uploadResult = await uploadRequest.uploadSlice();
+        progress?.report(uploadRequest.rangeEnd);
         const { itemResponse, location } = uploadResult as Partial<UploadResult<T>>;
         if (itemResponse || location) {
           return uploadResult as UploadResult<T>;
         }
-      } catch (e) {
-        console.error(e);
+        currentRangeBegin += nextSliceSize;
       }
     }
     throw new Error("Upload failed");
