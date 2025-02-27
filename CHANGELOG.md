@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-preview.12](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.11...v1.0.0-preview.12) (2025-02-27)
+
+
+### Features
+
+* Add large file upload ([#347](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/issues/347)) ([08c4c9e](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/08c4c9e34edaaf497d8cc2983fa60d89dd5fd86a))
+
 ## [1.0.0-preview.11](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.10...v1.0.0-preview.11) (2025-02-25)
 
 
