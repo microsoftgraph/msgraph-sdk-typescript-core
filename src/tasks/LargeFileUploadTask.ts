@@ -297,41 +297,6 @@ export class LargeFileUploadTask<T extends Parsable> {
   }
 
   /**
-   * Generates a list of upload slice requests based on the remaining ranges to be uploaded.
-   *
-   * @private
-   * @returns {UploadSlice<T>[]} An array of UploadSlice objects representing the upload requests.
-   */
-  private getUploadSliceRequests(): UploadSlice<T>[] {
-    const uploadSlices: UploadSlice<T>[] = [];
-    const rangesRemaining = this.rangesRemaining;
-    const session = this.Session;
-    const uploadUrl = session.uploadUrl;
-    if (!uploadUrl) {
-      throw new Error("Upload URL is a required parameter.");
-    }
-    rangesRemaining.forEach(range => {
-      let currentRangeBegin = range[0];
-      while (currentRangeBegin <= range[1]) {
-        const nextSliceSize = this.nextSliceSize(currentRangeBegin, range[1]);
-        const uploadRequest = new UploadSlice<T>(
-          this.requestAdapter,
-          uploadUrl,
-          currentRangeBegin,
-          currentRangeBegin + nextSliceSize - 1,
-          range[1] + 1,
-          this.parsableFactory,
-          this.errorMappings,
-          this.seekableStreamReader,
-        );
-        uploadSlices.push(uploadRequest);
-        currentRangeBegin += nextSliceSize;
-      }
-    });
-    return uploadSlices;
-  }
-
-  /**
    * Calculates the size of the next slice to be uploaded.
    *
    * @param {number} currentRangeBegin - The beginning of the current range.
