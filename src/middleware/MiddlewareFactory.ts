@@ -11,8 +11,8 @@ import { defaultUrlReplacementPairs } from "../utils/Constants.js";
 import { BaseBearerTokenAuthenticationProvider } from "@microsoft/kiota-abstractions";
 
 export const getDefaultMiddlewares = (
-  authenticationProvider?: BaseBearerTokenAuthenticationProvider,
   options: MiddlewareFactoryOptions = { customFetch: fetch },
+  authenticationProvider?: BaseBearerTokenAuthenticationProvider | null,
 ): Middleware[] => {
   let kiotaChain = MiddlewareFactory.getDefaultMiddlewares(options?.customFetch);
   if (authenticationProvider) {

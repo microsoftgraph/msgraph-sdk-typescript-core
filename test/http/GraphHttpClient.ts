@@ -2,6 +2,7 @@ import { assert, describe, it } from "vitest";
 import { GraphHttpClient, GraphTelemetryOption } from "../../src";
 import { BaseBearerTokenAuthenticationProvider } from "@microsoft/kiota-abstractions";
 import type { Middleware } from "@microsoft/kiota-http-fetchlibrary";
+import { GraphClientFactory } from "../../src/http/GraphClientFactory";
 
 const graphTelemetryOption: GraphTelemetryOption = {};
 
@@ -27,13 +28,19 @@ describe("GraphHttpClient tests", () => {
       assert.isNotNull(client, "Client is null");
     });
 
+    it("Should create instance of graph http client with middleware", () => {
+      const middleware = {} as Middleware;
+      const client = new GraphHttpClient(graphTelemetryOption, undefined, middleware);
+      assert.isNotNull(client, "Client is null");
+    });
+
     it("Should add auth middleware when provider is given", () => {
       const client = new GraphHttpClient(graphTelemetryOption);
       const count = countMiddlewares((client as any)["middleware"] as Middleware);
       assert.equal(8, count);
 
       const authenticationProvider = new BaseBearerTokenAuthenticationProvider({} as any);
-      const clientWithProvider = new GraphHttpClient(graphTelemetryOption, undefined, authenticationProvider);
+      const clientWithProvider = GraphClientFactory.create(graphTelemetryOption, undefined, authenticationProvider);
       const count2 = countMiddlewares((clientWithProvider as any)["middleware"] as Middleware);
       assert.equal(9, count2);
     });
