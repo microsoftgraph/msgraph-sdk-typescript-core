@@ -3,13 +3,21 @@ import {
   MiddlewareFactory,
   UrlReplaceHandler,
   UrlReplaceHandlerOptions,
+  AuthorizationHandler,
 } from "@microsoft/kiota-http-fetchlibrary";
 import { GraphTelemetryOption } from "./GraphTelemetryOption.js";
 import { GraphTelemetryHandler } from "./GraphTelemetryHandler.js";
 import { defaultUrlReplacementPairs } from "../utils/Constants.js";
+import { BaseBearerTokenAuthenticationProvider } from "@microsoft/kiota-abstractions";
 
-export const getDefaultMiddlewares = (options: MiddlewareFactoryOptions = { customFetch: fetch }): Middleware[] => {
+export const getDefaultMiddlewares = (
+  authenticationProvider?: BaseBearerTokenAuthenticationProvider,
+  options: MiddlewareFactoryOptions = { customFetch: fetch },
+): Middleware[] => {
   let kiotaChain = MiddlewareFactory.getDefaultMiddlewares(options?.customFetch);
+  if (authenticationProvider) {
+    kiotaChain.unshift(new AuthorizationHandler(authenticationProvider));
+  }
   const additionalMiddleware: Middleware[] = [
     new UrlReplaceHandler(
       new UrlReplaceHandlerOptions({
