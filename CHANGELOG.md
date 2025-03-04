@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-preview.13](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.12...v1.0.0-preview.13) (2025-03-04)
+
+
+### Features
+
+* add batch request content ([#354](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/issues/354)) ([c344031](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/c344031d35c79b8026f54c6c731409e6097ce2db))
+
 ## [1.0.0-preview.12](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.11...v1.0.0-preview.12) (2025-02-27)
 
 
