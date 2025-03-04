@@ -22,7 +22,7 @@ import {
   createGuid,
   RequestAdapter,
 } from "@microsoft/kiota-abstractions";
-import { defaultUrlReplacementPairs } from "../utils/Constants";
+import { defaultUrlReplacementPairs } from "../utils/Constants.js";
 
 /**
  * @interface

@@ -16,8 +16,8 @@ import {
   type AdditionalDataHolder,
 } from "@microsoft/kiota-abstractions";
 import { HeadersInspectionOptions } from "@microsoft/kiota-http-fetchlibrary";
-import { UploadResult, UploadSession } from "./LargeFileUploadTask";
-import { SeekableStreamReader } from "./SeekableStreamReader";
+import { UploadResult, UploadSession } from "./LargeFileUploadTask.js";
+import { SeekableStreamReader } from "./SeekableStreamReader.js";
 
 const binaryContentType = "application/octet-stream";
 

@@ -1,7 +1,7 @@
 import { RequestAdapter, RequestInformation, ErrorMappings } from "@microsoft/kiota-abstractions";
-import { BatchRequestStep, BatchRequestBody, convertRequestInformationToBatchItem } from "./BatchRequestStep";
-import { BatchResponseContent } from "./BatchResponseContent";
-import { BatchRequestBuilder } from "./BatchRequestBuilder";
+import { BatchRequestStep, BatchRequestBody, convertRequestInformationToBatchItem } from "./BatchRequestStep.js";
+import { BatchResponseContent } from "./BatchResponseContent.js";
+import { BatchRequestBuilder } from "./BatchRequestBuilder.js";
 
 /**
  * -------------------------------------------------------------------------------------------
