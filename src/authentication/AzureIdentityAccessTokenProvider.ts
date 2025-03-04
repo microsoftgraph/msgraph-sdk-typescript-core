@@ -1,6 +1,5 @@
 import { GetTokenOptions, TokenCredential } from "@azure/core-auth";
-import { AzureIdentityAccessTokenProvider } from "@microsoft/kiota-authentication-azure";
-import { ObservabilityOptions } from "@microsoft/kiota-authentication-azure/dist/es/src/observabilityOptions";
+import { AzureIdentityAccessTokenProvider, type ObservabilityOptions } from "@microsoft/kiota-authentication-azure";
 
 export class GraphAzureIdentityAccessTokenProvider extends AzureIdentityAccessTokenProvider {
   public constructor(
