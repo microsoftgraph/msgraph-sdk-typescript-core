@@ -18,8 +18,8 @@ import {
   ErrorMappings,
   HttpMethod,
 } from "@microsoft/kiota-abstractions";
-import { UploadSlice } from "./UploadSlice";
-import { SeekableStreamReader } from "./SeekableStreamReader";
+import { UploadSlice } from "./UploadSlice.js";
+import { SeekableStreamReader } from "./SeekableStreamReader.js";
 
 /**
  * @interface

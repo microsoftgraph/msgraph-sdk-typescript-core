@@ -3,11 +3,11 @@ import {
   BatchResponseBody,
   createBatchResponseContentFromDiscriminatorValue,
   serializeBatchRequestBody,
-} from "./BatchRequestStep";
-import { BatchResponseContent } from "./BatchResponseContent";
-import { BatchRequestContent } from "./BatchRequestContent";
-import { BatchRequestContentCollection } from "./BatchRequestContentCollection";
-import { BatchResponseContentCollection } from "./BatchResponseContentCollection";
+} from "./BatchRequestStep.js";
+import { BatchResponseContent } from "./BatchResponseContent.js";
+import { BatchRequestContent } from "./BatchRequestContent.js";
+import { BatchRequestContentCollection } from "./BatchRequestContentCollection.js";
+import { BatchResponseContentCollection } from "./BatchResponseContentCollection.js";
 
 export class BatchRequestBuilder {
   /**

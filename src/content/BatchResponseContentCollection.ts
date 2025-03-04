@@ -9,8 +9,8 @@
  * @module BatchResponseContentCollection
  */
 
-import { BatchResponseContent } from "./BatchResponseContent";
-import { BatchResponse } from "./BatchRequestStep";
+import { BatchResponseContent } from "./BatchResponseContent.js";
+import { BatchResponse } from "./BatchRequestStep.js";
 import { deserializeFromJson, Parsable, ParsableFactory } from "@microsoft/kiota-abstractions";
 
 /**

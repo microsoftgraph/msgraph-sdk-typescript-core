@@ -10,10 +10,10 @@
  */
 
 import { ErrorMappings, RequestAdapter, RequestInformation } from "@microsoft/kiota-abstractions";
-import { BatchRequestStep, convertRequestInformationToBatchItem } from "./BatchRequestStep";
-import { BatchRequestContent } from "./BatchRequestContent";
-import { BatchRequestBuilder } from "./BatchRequestBuilder";
-import { BatchResponseContentCollection } from "./BatchResponseContentCollection";
+import { BatchRequestStep, convertRequestInformationToBatchItem } from "./BatchRequestStep.js";
+import { BatchRequestContent } from "./BatchRequestContent.js";
+import { BatchRequestBuilder } from "./BatchRequestBuilder.js";
+import { BatchResponseContentCollection } from "./BatchResponseContentCollection.js";
 
 /**
  * The default limit for the number of requests in a single batch.
