@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.0.0-preview.14](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.13...v1.0.0-preview.14) (2025-03-04)
+
+
+### Bug Fixes
+
+* adds missing js extension to imports ([f75a663](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/f75a6638a065939f29305a5b315ef1c1838e00cf))
+* adds missing js extension to imports ([b0a5d4c](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/b0a5d4c4722eb7001cc338f22db75e1d034e8fe3))
+* corrected the imports for observability options ([43323ef](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/43323efcb63028e51255167d4b12919581e53d87))
+* corrected the imports for observability options ([bff310f](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/bff310ff2db464af4dfe213c47501c5f192878d8))
+
+## [1.0.0-preview.13](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.12...v1.0.0-preview.13) (2025-03-04)
+
+
+### Features
+
+* add batch request content ([#354](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/issues/354)) ([c344031](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/c344031d35c79b8026f54c6c731409e6097ce2db))
+
 ## [1.0.0-preview.12](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.11...v1.0.0-preview.12) (2025-02-27)
 
 
