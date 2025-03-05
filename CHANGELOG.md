@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-preview.15](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.14...v1.0.0-preview.15) (2025-03-05)
+
+
+### Features
+
+* add authorization middleware support and factory overload ([be42e2e](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/be42e2ef26335d730035b227a0d4ae7605e7d601))
+
 ## [1.0.0-preview.14](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.13...v1.0.0-preview.14) (2025-03-04)
 
 
