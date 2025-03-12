@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.0-preview.16](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.15...v1.0.0-preview.16) (2025-03-12)
+
+
+### Bug Fixes
+
+* directory import in factory ([7558470](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/7558470e373d511aeaacc1ae484e51fb491f8ce6))
+* directory import in factory ([61727b4](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/61727b497fbdac3b50ff1a44aba71ed6c2dd9079))
+
 ## [1.0.0-preview.15](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.14...v1.0.0-preview.15) (2025-03-05)
 
 
