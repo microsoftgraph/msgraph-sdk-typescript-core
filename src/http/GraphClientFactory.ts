@@ -1,7 +1,7 @@
 import { BaseBearerTokenAuthenticationProvider } from "@microsoft/kiota-abstractions";
 import { Middleware } from "@microsoft/kiota-http-fetchlibrary";
 import { GraphHttpClient } from "./GraphHttpClient.js";
-import { getDefaultMiddlewares, GraphTelemetryOption } from "../middleware";
+import { getDefaultMiddlewares, GraphTelemetryOption } from "../middleware/index.js";
 
 /**
  * Creates an instance of `GraphHttpClient`, with the provided middlewares and custom fetch implementation both parameters are optional.
