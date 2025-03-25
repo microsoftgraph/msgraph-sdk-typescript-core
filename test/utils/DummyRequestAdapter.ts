@@ -14,12 +14,15 @@ import {
   type ErrorMappings,
   Parsable,
   type ParsableFactory,
+  ParseNodeFactory,
   type PrimitiveTypesForDeserialization,
   type PrimitiveTypesForDeserializationType,
   RequestAdapter,
   type RequestInformation,
   SerializationWriterFactory,
   SerializationWriterFactoryRegistry,
+  InMemoryBackingStoreFactory,
+  ParseNodeFactoryRegistry,
 } from "@microsoft/kiota-abstractions";
 
 import { JsonSerializationWriterFactory } from "@microsoft/kiota-serialization-json";
@@ -35,7 +38,10 @@ export class DummyRequestAdapter implements RequestAdapter {
   requests: RequestInformation[] = [];
   serializationWriterFactory = new SerializationWriterFactoryRegistry();
 
-  constructor() {
+  constructor(
+    private parseNodeFactory: ParseNodeFactory = new ParseNodeFactoryRegistry(),
+    private backingStoreFactory = new InMemoryBackingStoreFactory(),
+  ) {
     const serializer = new JsonSerializationWriterFactory();
     this.serializationWriterFactory.contentTypeAssociatedFactories.set(serializer.getValidContentType(), serializer);
   }
@@ -127,5 +133,13 @@ export class DummyRequestAdapter implements RequestAdapter {
   ): Promise<ResponseType | undefined> {
     this.requests.push(requestInfo);
     return Promise.resolve(this.response.shift());
+  }
+
+  getBackingStoreFactory(): BackingStoreFactory {
+    return this.backingStoreFactory;
+  }
+
+  getParseNodeFactory(): ParseNodeFactory {
+    return this.parseNodeFactory;
   }
 }

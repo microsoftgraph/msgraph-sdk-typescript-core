@@ -9,9 +9,9 @@ import {
   ParseNode,
   Parsable,
   Headers,
-  registerDefaultDeserializer,
+  ParseNodeFactoryRegistry,
 } from "@microsoft/kiota-abstractions";
-import { JsonParseNodeFactory, JsonSerializationWriterFactory } from "@microsoft/kiota-serialization-json";
+import { JsonParseNodeFactory } from "@microsoft/kiota-serialization-json";
 // @ts-ignore
 import { createGraphErrorFromDiscriminatorValue } from "../tasks/PageIterator";
 import { createCipheriv } from "node:crypto";
@@ -154,14 +154,22 @@ describe("BatchRequestContent tests", () => {
       assert.equal(response?.status, 200);
     });
     it("Can parse a response a response by Id", () => {
-      registerDefaultDeserializer(JsonParseNodeFactory);
+      if (!(adapter.getParseNodeFactory() instanceof ParseNodeFactoryRegistry)) {
+        throw new Error("Invalid parse node factory");
+      }
+      const parseNodeFactoryRegistry = adapter.getParseNodeFactory() as ParseNodeFactoryRegistry;
+      parseNodeFactoryRegistry.registerDefaultDeserializer(JsonParseNodeFactory, adapter.getBackingStoreFactory());
 
       const sampleArrayBuffer = new TextEncoder().encode(JSON.stringify({ value: [1, 2, 3], id: "1", name: "test" }));
       const requestContent = new BatchResponseContent({
         responses: [{ id: "1", status: 200, headers: {}, body: sampleArrayBuffer }],
       });
 
-      const response = requestContent.getParsableResponseById<SampleResponse>("1", createSampleFromDiscriminatorValue);
+      const response = requestContent.getParsableResponseById<SampleResponse>(
+        "1",
+        parseNodeFactoryRegistry as ParseNodeFactoryRegistry,
+        createSampleFromDiscriminatorValue,
+      );
       assert.isNotNull(response);
       assert.equal(response?.value.length, 3);
       assert.equal(response?.id, "1");

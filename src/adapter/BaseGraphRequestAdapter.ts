@@ -27,8 +27,8 @@ export class BaseGraphRequestAdapter extends DefaultRequestAdapter {
     graphServiceTargetVersion: string,
     graphServiceLibraryClientVersion: string,
     authenticationProvider: AuthenticationProvider,
-    parseNodeFactory: ParseNodeFactory = ParseNodeFactoryRegistry.defaultInstance,
-    serializationWriterFactory: SerializationWriterFactory = SerializationWriterFactoryRegistry.defaultInstance,
+    parseNodeFactory: ParseNodeFactory = new ParseNodeFactoryRegistry(),
+    serializationWriterFactory: SerializationWriterFactory = new SerializationWriterFactoryRegistry(),
     httpClient: HttpClient = createGraphClientFactory({
       graphServiceTargetVersion,
       graphServiceLibraryClientVersion,
