@@ -10,7 +10,7 @@
  */
 
 import { BatchResponseBody, BatchResponse } from "./BatchRequestStep.js";
-import { Parsable, deserializeFromJson, ParsableFactory } from "@microsoft/kiota-abstractions";
+import { Parsable, ParsableFactory, ParseNodeFactoryRegistry } from "@microsoft/kiota-abstractions";
 
 /**
  * @class
@@ -61,13 +61,18 @@ export class BatchResponseContent {
    * Retrieves a parsable response by request ID.
    * @template T - The type of the parsable response.
    * @param {string} requestId - The request ID value.
+   * @param parseNodeFactoryRegistry - The registry to create parse nodes.
    * @param {ParsableFactory<T>} factory - The factory to create the parsable response.
    * @returns {T | undefined} The parsable response object instance for the particular request, or undefined if not found.
    */
-  public getParsableResponseById<T extends Parsable>(requestId: string, factory: ParsableFactory<T>): T | undefined {
+  public getParsableResponseById<T extends Parsable>(
+    requestId: string,
+    parseNodeFactoryRegistry: ParseNodeFactoryRegistry,
+    factory: ParsableFactory<T>,
+  ): T | undefined {
     const res = this.responses.get(requestId);
     if (res?.body) {
-      const result = deserializeFromJson(res.body, factory);
+      const result = parseNodeFactoryRegistry.deserializeFromJson(res.body, factory);
       return result as T;
     }
     return undefined;
