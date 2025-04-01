@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-preview.17](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.16...v1.0.0-preview.17) (2025-04-01)
+
+
+### Features
+
+* removes singleton refrences ([#404](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/issues/404)) ([3b1afa8](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/3b1afa8d0ceb8588cc41193c0a057ec929c04c20))
+
 ## [1.0.0-preview.16](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.15...v1.0.0-preview.16) (2025-03-12)
 
 
