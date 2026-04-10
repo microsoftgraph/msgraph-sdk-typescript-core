@@ -1,5 +1,5 @@
 import { describe, it, assert, expect } from "vitest";
-import { coreVersion } from "src";
+import { coreVersion } from "../../src";
 import { readFile } from "node:fs/promises";
 
 /**
