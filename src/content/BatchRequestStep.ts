@@ -191,7 +191,7 @@ export const convertRequestInformationToBatchItem = (
 
   let headers: Record<string, any> | undefined;
   if (headers !== undefined) {
-    headers = Object.fromEntries(requestInformation.headers.entries()) as unknown as Record<string, string>;
+    headers = Object.fromEntries(requestInformation.headers.entries());
   }
 
   const url = uriString.replace(requestAdapter.baseUrl, "");
