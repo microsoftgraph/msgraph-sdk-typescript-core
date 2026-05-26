@@ -111,11 +111,7 @@ export class BatchRequestContent {
       cur = iterator.next();
       while (!cur.done) {
         const curReq: BatchRequestStep = cur.value[1];
-        if (
-          curReq.dependsOn === undefined ||
-          curReq.dependsOn.length !== 1 ||
-          curReq.dependsOn[0] !== prev.value[1].id
-        ) {
+        if (curReq.dependsOn?.length !== 1 || curReq.dependsOn[0] !== prev.value[1].id) {
           return false;
         }
         prev = cur;
