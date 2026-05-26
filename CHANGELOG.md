@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-preview.18](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.17...v1.0.0-preview.18) (2026-05-26)
+
+
+### Bug Fixes
+
+* update kiota dependencies to resolve credential leak vulnerability (GHSA-396q-4vc8-28x9) ([#574](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/issues/574)) ([13afe3b](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/13afe3b9ace3bc8379d44a081c3590ab1a5bd5be))
+
 ## [1.0.0-preview.17](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.16...v1.0.0-preview.17) (2025-04-01)
 
 
