@@ -48,6 +48,11 @@ extends:
                 inputs:
                   versionSpec: '20.x'
 
+              - task: npmAuthenticate@0
+                displayName: Authenticate npm
+                inputs:
+                  workingFile: $(Build.SourcesDirectory)/.npmrc
+
               - script: npm ci
                 displayName: Install dependencies
                 workingDirectory: $(Build.SourcesDirectory)
