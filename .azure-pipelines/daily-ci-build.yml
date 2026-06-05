@@ -39,9 +39,6 @@ extends:
         jobs:
           - job: Build
             displayName: Build TypeScript Core SDK
-            variables:
-              - name: npmRegistryUrl
-                value: 'https://microsoftgraph.pkgs.visualstudio.com/0985d294-5762-4bc2-a565-161ef349ca3e/_packaging/GraphDeveloperExperiences_Public/npm/registry/'
             steps:
               - checkout: self
                 submodules: recursive
