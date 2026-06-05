@@ -39,6 +39,9 @@ extends:
         jobs:
           - job: Build
             displayName: Build TypeScript Core SDK
+            variables:
+              - name: npmRegistryUrl
+                value: 'https://microsoftgraph.pkgs.visualstudio.com/0985d294-5762-4bc2-a565-161ef349ca3e/_packaging/GraphDeveloperExperiences_Public/npm/registry/'
             steps:
               - checkout: self
                 submodules: recursive
@@ -49,7 +52,7 @@ extends:
                   versionSpec: '20.x'
 
               - script: |
-                  echo "registry=https://microsoftgraph.pkgs.visualstudio.com/0985d294-5762-4bc2-a565-161ef349ca3e/_packaging/GraphDeveloperExperiences_Public/npm/registry/" > .npmrc
+                  echo "registry=$(npmRegistryUrl)" > .npmrc
                   echo "always-auth=true" >> .npmrc
                 displayName: Create .npmrc for Azure Artifacts feed
                 workingDirectory: $(Build.SourcesDirectory)
