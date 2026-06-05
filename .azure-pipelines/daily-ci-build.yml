@@ -54,7 +54,7 @@ extends:
                   command: 'ci'
                   verbose: true
                   customRegistry: 'useFeed'
-                  customFeed: 'Graph Developer Experiences/EVALs_PublicPackages'
+                  customFeed: 'Graph Developer Experiences/GraphDeveloperExperiences_Public'
                   workingDir: '$(Build.SourcesDirectory)'
 
               - script: npm run build
