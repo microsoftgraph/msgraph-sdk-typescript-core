@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-preview.19](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.18...v1.0.0-preview.19) (2026-08-05)
+
+
+### Bug Fixes
+
+* resolve daily CI build failures (1ES pool image + npm auth) ([#583](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/issues/583)) ([a97399a](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/commit/a97399a73ab3d051188bce8f35d73a387ed89cca))
+
 ## [1.0.0-preview.18](https://github.com/microsoftgraph/msgraph-sdk-typescript-core/compare/v1.0.0-preview.17...v1.0.0-preview.18) (2026-05-26)
 
 
