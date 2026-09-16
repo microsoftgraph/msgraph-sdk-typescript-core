@@ -8,6 +8,8 @@ updates:
   commit-message:
     # Prefix all commit messages with "npm"
     prefix: "auto dependabot"
+  cooldown:
+    default-days: 7
 
 - package-ecosystem: npm
   directory: "/"
